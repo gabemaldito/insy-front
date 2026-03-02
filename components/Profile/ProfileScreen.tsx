@@ -1,18 +1,23 @@
-import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  DeviceEventEmitter,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function ProfileScreen() {
-  const router = useRouter();
+export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
       <View style={styles.header}>
+        {/* Em vez de 'router.back()', mandamos a tela voltar pro meio (Dashboard) pelo ScrollView */}
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => DeviceEventEmitter.emit("openCenter")}
           style={styles.backButton}
         >
           <ArrowLeft color="#ffffff" size={24} />
@@ -25,7 +30,7 @@ export default function ProfileScreen() {
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -33,7 +38,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#060608",
   },
   header: {
-    flexDirection: "row", // Botao e titulo na mesma linha
+    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 4,

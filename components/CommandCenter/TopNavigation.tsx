@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { DeviceEventEmitter, Pressable, StyleSheet } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -32,9 +32,9 @@ export const TopNavigation = () => {
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      {/* 2. Botão da Esquerda -> Navega pro Vault */}
+      {/* 2. Botão da Esquerda -> Avisa o Dashboard pra rolar pro Vault */}
       <Pressable
-        onPress={() => router.push("/vault")}
+        onPress={() => DeviceEventEmitter.emit("openVault")}
         style={({ pressed }) => [
           styles.iconBox,
           pressed && styles.iconBoxPressed,
@@ -81,9 +81,9 @@ export const TopNavigation = () => {
         </Svg>
       </Pressable>
 
-      {/* 3. Botão da Direita -> Navega pro Perfil */}
+      {/* 3. Botão da Direita -> Avisa o Dashboard pra rolar pro Profile */}
       <Pressable
-        onPress={() => router.push("/profile")}
+        onPress={() => DeviceEventEmitter.emit("openProfile")}
         style={({ pressed }) => [
           styles.iconProfile,
           pressed && styles.iconProfilePressed,

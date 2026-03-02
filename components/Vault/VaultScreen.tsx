@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import React from "react";
 import {
@@ -36,17 +35,18 @@ const TRANSCRICOES = [
   },
 ];
 
-// 2. O COMPONENTE DA TELA
+import { DeviceEventEmitter } from "react-native"; // Import necessário
+// ...
 export const VaultScreen = () => {
   const insets = useSafeAreaInsets(); // Pra não ficar embaixo da barra de bateria do iPhone/Android
-  const router = useRouter(); // Ferramenta do Expo Router para navegarmos (ex: botão de voltar)
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
       {/* 3. CABEÇALHO */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          // Volta pra tela do Dashboard pelo ScrollView mandando o evento!
+          onPress={() => DeviceEventEmitter.emit("openCenter")}
           style={styles.backButton}
         >
           <ArrowLeft color="#ffffff" size={24} />

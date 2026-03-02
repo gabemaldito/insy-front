@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import Animated, {
   Easing,
+  useAnimatedKeyboard,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -13,6 +14,8 @@ import Svg, { Circle, Path } from "react-native-svg";
 export const SearchBar = () => {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(30);
+  // 1. Pega a altura dinâmica do teclado com o Reanimated
+  const keyboard = useAnimatedKeyboard();
 
   useEffect(() => {
     opacity.value = withDelay(
@@ -27,11 +30,17 @@ export const SearchBar = () => {
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
+    // 2. Animação de entrada inicial E a altura negativa do teclado sendo aplicada na hora
+    transform: [
+      { translateY: translateY.value },
+      { translateY: -keyboard.height.value },
+    ],
   }));
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    <Animated.View
+      style={[styles.container, animatedStyle, styles.shadowContainer]}
+    >
       <BlurView intensity={30} tint="dark" style={styles.blurContainer}>
         <View style={styles.searchBar}>
           <View style={styles.searchIcon}>
@@ -45,7 +54,7 @@ export const SearchBar = () => {
               />
               <Path
                 d="M11.5 11.5L15.5 15.5"
-                stroke="rgba(255,255,255,0.35)"
+                stroke="hsla(0, 0%, 100%, 0.35)"
                 strokeWidth="1.5"
                 strokeLinecap="round"
               />
@@ -74,18 +83,20 @@ const styles = StyleSheet.create({
     right: 24,
     zIndex: 10,
   },
-  blurContainer: {
-    borderRadius: 999,
-    overflow: "hidden",
-    // Apply shadows here for the outer glow
+  shadowContainer: {
     shadowColor: "#ff1f3d",
     shadowOffset: {
       width: 0,
       height: 0,
     },
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    elevation: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 20,
+    borderRadius: 999, // Segue o arredondamento
+  },
+  blurContainer: {
+    borderRadius: 999,
+    overflow: "hidden", //Corta o blur vazando pelos cantos
   },
   searchBar: {
     height: 60,
@@ -94,7 +105,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: "hsla(0, 0%, 100%, 0.14)",
     borderRadius: 999,
     gap: 12,
   },

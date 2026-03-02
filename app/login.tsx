@@ -23,8 +23,7 @@ export default function LoginScreen() {
 
       <TouchableOpacity
         style={[styles.button, { marginBottom: Math.max(insets.bottom, 20) }]}
-        // Substituimos 'push' por 'replace' para que o painel principal "substituía" o login
-        // e não possa usar o botão de "voltar" pro login
+        // Substituimos 'push' por 'replace' para que o painel principal substitua o login
         onPress={() => router.replace("/dashboard")}
       >
         <Text style={styles.buttonText}>Entrar no Dashboard</Text>

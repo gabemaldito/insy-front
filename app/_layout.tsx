@@ -24,18 +24,7 @@ export default function RootLayout() {
           name="login"
           options={{ headerShown: false, title: "Modal" }}
         />
-        <Stack.Screen
-          name="dashboard"
-          options={{ headerShown: false, title: "dashboard" }}
-        />
-        <Stack.Screen
-          name="vault"
-          options={{
-            headerShown: false,
-            presentation: "modal",
-            animation: "slide_from_left",
-          }}
-        />
+        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
