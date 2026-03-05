@@ -14,13 +14,13 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="login"
-          options={{ headerShown: false, title: "Modal" }}
-        />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="verify-email" />
+        <Stack.Screen name="dashboard" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

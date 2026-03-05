@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, Lock, Mail } from "lucide-react-native";
+import { ArrowLeft, Lock, Mail, User } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -12,13 +12,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
+  const handleSignup = () => {
     // Implement auth logic from Supabase here
     router.replace("/dashboard");
   };
@@ -44,12 +45,29 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome back.</Text>
+          <Text style={styles.title}>Create account.</Text>
           <Text style={styles.subtitle}>
-            Enter your details to access your vault.
+            Sign up to start organizing your thoughts effortlessly.
           </Text>
 
           <View style={styles.formContainer}>
+            {/* Custom Input: Name */}
+            <View style={styles.inputWrapper}>
+              <User
+                color="rgba(255, 255, 255, 0.4)"
+                size={20}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Full name"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                autoCapitalize="words"
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
+
             {/* Custom Input: Email */}
             <View style={styles.inputWrapper}>
               <Mail
@@ -86,18 +104,11 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.forgotPasswordButton}
-              onPress={() => router.push("/forgot-password" as any)}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={styles.primaryButton}
-              onPress={handleLogin}
+              onPress={handleSignup}
               activeOpacity={0.8}
             >
-              <Text style={styles.primaryButtonText}>Log In</Text>
+              <Text style={styles.primaryButtonText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -108,9 +119,9 @@ export default function LoginScreen() {
             { paddingBottom: Math.max(insets.bottom, 20) },
           ]}
         >
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/signup" as any)}>
-            <Text style={styles.footerLink}>Sign up</Text>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push("/login" as any)}>
+            <Text style={styles.footerLink}>Log in</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -151,6 +162,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 40,
+    lineHeight: 24,
   },
   formContainer: {
     gap: 16,
@@ -174,22 +186,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: "100%",
   },
-  forgotPasswordButton: {
-    alignSelf: "flex-end",
-    paddingVertical: 4,
-  },
-  forgotPasswordText: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 14,
-    fontWeight: "500",
-  },
   primaryButton: {
     backgroundColor: "#ffffff",
     height: 56,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 24,
     shadowColor: "#ffffff",
     shadowOpacity: 0.1,
     shadowRadius: 10,

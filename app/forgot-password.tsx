@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, Lock, Mail } from "lucide-react-native";
+import { ArrowLeft, Mail } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -12,15 +12,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    // Implement auth logic from Supabase here
-    router.replace("/dashboard");
+  const handleResetPassword = () => {
+    // Implement password reset logic here
+    router.push("/verify-email");
   };
 
   return (
@@ -44,9 +43,10 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome back.</Text>
+          <Text style={styles.title}>Reset password.</Text>
           <Text style={styles.subtitle}>
-            Enter your details to access your vault.
+            Enter the email associated with your account and we'll send you a
+            link to reset your password.
           </Text>
 
           <View style={styles.formContainer}>
@@ -68,36 +68,12 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Custom Input: Password */}
-            <View style={styles.inputWrapper}>
-              <Lock
-                color="rgba(255, 255, 255, 0.4)"
-                size={20}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.forgotPasswordButton}
-              onPress={() => router.push("/forgot-password" as any)}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={handleLogin}
+              onPress={handleResetPassword}
               activeOpacity={0.8}
             >
-              <Text style={styles.primaryButtonText}>Log In</Text>
+              <Text style={styles.primaryButtonText}>Send Reset Link</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -107,12 +83,7 @@ export default function LoginScreen() {
             styles.footer,
             { paddingBottom: Math.max(insets.bottom, 20) },
           ]}
-        >
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/signup" as any)}>
-            <Text style={styles.footerLink}>Sign up</Text>
-          </TouchableOpacity>
-        </View>
+        />
       </View>
     </KeyboardAvoidingView>
   );
@@ -151,6 +122,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 40,
+    lineHeight: 24,
   },
   formContainer: {
     gap: 16,
@@ -174,22 +146,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: "100%",
   },
-  forgotPasswordButton: {
-    alignSelf: "flex-end",
-    paddingVertical: 4,
-  },
-  forgotPasswordText: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 14,
-    fontWeight: "500",
-  },
   primaryButton: {
     backgroundColor: "#ffffff",
     height: 56,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 8,
     shadowColor: "#ffffff",
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -201,18 +164,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
     paddingTop: 20,
-  },
-  footerText: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 15,
-  },
-  footerLink: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
   },
 });
