@@ -1,23 +1,19 @@
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { ArrowLeft } from "lucide-react-native";
 import React from "react";
-import {
-  DeviceEventEmitter,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
       <View style={styles.header}>
-        {/* Em vez de 'router.back()', mandamos a tela voltar pro meio (Dashboard) pelo ScrollView */}
+        {/* Usamos a navegacao nativa do Drawer para fechar */}
         <TouchableOpacity
-          onPress={() => DeviceEventEmitter.emit("openCenter")}
+          onPress={() => navigation.dispatch(DrawerActions.closeDrawer())}
           style={styles.backButton}
         >
           <ArrowLeft color="#ffffff" size={24} />

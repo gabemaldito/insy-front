@@ -1,6 +1,7 @@
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { DeviceEventEmitter, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -11,6 +12,7 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 export const TopNavigation = () => {
   const router = useRouter(); // <-- 1. Ferramenta de roteamento
+  const navigation = useNavigation(); // <-- 1.5. Navegação pura para Drawer
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-12);
 
@@ -32,9 +34,13 @@ export const TopNavigation = () => {
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      {/* 2. Botão da Esquerda -> Avisa o Dashboard pra rolar pro Vault */}
+      {/* 2. Botão da Esquerda -> Abre o Drawer (Vault) */}
       <Pressable
-        onPress={() => DeviceEventEmitter.emit("openVault")}
+        onPress={() =>
+          navigation
+            .getParent("LeftDrawer")
+            ?.dispatch(DrawerActions.openDrawer())
+        }
         style={({ pressed }) => [
           styles.iconBox,
           pressed && styles.iconBoxPressed,
@@ -81,9 +87,13 @@ export const TopNavigation = () => {
         </Svg>
       </Pressable>
 
-      {/* 3. Botão da Direita -> Avisa o Dashboard pra rolar pro Profile */}
+      {/* 3. Botão da Direita -> Abre o Drawer (Profile) */}
       <Pressable
-        onPress={() => DeviceEventEmitter.emit("openProfile")}
+        onPress={() =>
+          navigation
+            .getParent("RightDrawer")
+            ?.dispatch(DrawerActions.openDrawer())
+        }
         style={({ pressed }) => [
           styles.iconProfile,
           pressed && styles.iconProfilePressed,
