@@ -1,0 +1,13 @@
+﻿app/(tabs)/vault.tsx(20,29): error TS1261: Already included file name 'C:/Users/gabri/OneDrive/Documentos/Insy - seu organizador pessoal/insy-front/components/vault/InsightCard.tsx' differs from file name 'C:/Users/gabri/OneDrive/Documentos/Insy - seu organizador pessoal/insy-front/components/Vault/InsightCard.tsx' only in casing.
+  The file is in the program because:
+    Imported via "../../components/vault/InsightCard" from file 'C:/Users/gabri/OneDrive/Documentos/Insy - seu organizador pessoal/insy-front/app/(tabs)/vault.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/gabri/OneDrive/Documentos/Insy - seu organizador pessoal/insy-front/tsconfig.json'
+app/login.tsx(15,10): error TS2305: Module '"../utils/supabase"' has no exported member 'supabase'.
+app/signup.tsx(15,10): error TS2305: Module '"../utils/supabase"' has no exported member 'supabase'.
+components/ui/collapsible.tsx(7,10): error TS2305: Module '"@/constants/theme"' has no exported member 'Colors'.
+components/ui/NoiseTexture.tsx(12,7): error TS2322: Type '"repeat"' is not assignable to type 'ImageContentFit | undefined'.
+contexts/AuthContext.tsx(3,10): error TS2305: Module '"../utils/supabase"' has no exported member 'supabase'.
+contexts/AuthContext.tsx(26,48): error TS7031: Binding element 'session' implicitly has an 'any' type.
+contexts/AuthContext.tsx(35,42): error TS7006: Parameter '_event' implicitly has an 'any' type.
+contexts/AuthContext.tsx(35,50): error TS7006: Parameter 'session' implicitly has an 'any' type.
+hooks/use-theme-color.ts(6,10): error TS2305: Module '"@/constants/theme"' has no exported member 'Colors'.

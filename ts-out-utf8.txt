@@ -1,0 +1,10 @@
+﻿app/(drawer)/_layout.tsx(1,29): error TS2307: Cannot find module '@/components/Vault/VaultScreen' or its corresponding type declarations.
+app/(drawer)/dashboard.tsx(16,37): error TS2307: Cannot find module '@/components/CommandCenter/CommandCenterScreen' or its corresponding type declarations.
+app/(drawer)/dashboard.tsx(17,31): error TS2307: Cannot find module '@/components/Profile/ProfileScreen' or its corresponding type declarations.
+app/(drawer)/dashboard.tsx(18,29): error TS2307: Cannot find module '@/components/Vault/VaultScreen' or its corresponding type declarations.
+app/(drawer)/vault.tsx(3,29): error TS2307: Cannot find module '@/components/Vault/VaultScreen' or its corresponding type declarations.
+app/dashboard.tsx(5,37): error TS2307: Cannot find module '@/components/CommandCenter/CommandCenterScreen' or its corresponding type declarations.
+app/dashboard.tsx(6,31): error TS2307: Cannot find module '@/components/Profile/ProfileScreen' or its corresponding type declarations.
+app/dashboard.tsx(7,29): error TS2307: Cannot find module '@/components/Vault/VaultScreen' or its corresponding type declarations.
+app/login.tsx(15,10): error TS2305: Module '"../utils/supabase"' has no exported member 'supabase'.
+app/signup.tsx(15,10): error TS2305: Module '"../utils/supabase"' has no exported member 'supabase'.
