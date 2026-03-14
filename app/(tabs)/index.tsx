@@ -1,7 +1,7 @@
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Mic, User } from "lucide-react-native";
+import { Mic } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import {
   Easing,
@@ -52,7 +52,9 @@ export default function DashboardScreen() {
     };
   }, [isRecording, pulseAnim]);
 
-  const handlePressIn = async () => {
+  const pressStartAt = useRef<number>(0);
+
+  const startRecording = async () => {
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== "granted") {
@@ -77,23 +79,47 @@ export default function DashboardScreen() {
     }
   };
 
-  const handlePressOut = async () => {
-    if (isRecording) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setRecording(false);
+  const stopRecording = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setRecording(false);
 
-      if (recordingRef.current) {
-        try {
-          await recordingRef.current.stopAndUnloadAsync();
-          const uri = recordingRef.current.getURI();
-          console.log("Recording stopped and stored at", uri);
-          // TODO: enviar URI para transcrição via endpoint POST /captures
-        } catch (error) {
-          console.error("Failed to stop recording", error);
-        }
-        recordingRef.current = null;
+    if (recordingRef.current) {
+      try {
+        await recordingRef.current.stopAndUnloadAsync();
+        const uri = recordingRef.current.getURI();
+        console.log("Recording stopped and stored at", uri);
+        // TODO: enviar URI para transcrição via endpoint POST /captures
+      } catch (error) {
+        console.error("Failed to stop recording", error);
       }
+      recordingRef.current = null;
     }
+  };
+
+  const handlePressIn = async () => {
+    const currentState = useInsyStore.getState().isRecording;
+    if (currentState) {
+      await stopRecording();
+      pressStartAt.current = 0;
+      return;
+    }
+
+    pressStartAt.current = Date.now();
+    await startRecording();
+  };
+
+  const handlePressOut = async () => {
+    const currentState = useInsyStore.getState().isRecording;
+    if (!currentState || pressStartAt.current === 0) return;
+
+    const duration = Date.now() - pressStartAt.current;
+    if (duration < 300) {
+      // Quick tap, leave it recording
+      return;
+    }
+
+    // Long hold released, stop recording
+    await stopRecording();
   };
 
   return (
@@ -105,9 +131,6 @@ export default function DashboardScreen() {
         <View>
           <Text style={styles.greeting}>Good morning!</Text>
           <Text style={styles.subtitle}>What's on your mind?</Text>
-        </View>
-        <View style={styles.avatarContainer}>
-          <User color="#fff" size={20} />
         </View>
       </View>
 
@@ -151,7 +174,9 @@ export default function DashboardScreen() {
             isRecording && { color: theme.colors.primary },
           ]}
         >
-          {isRecording ? "Gravando..." : "Hold to record"}
+          {isRecording
+            ? "Gravando... Toque para parar"
+            : "Tap or Hold to record"}
         </Text>
       </View>
 
