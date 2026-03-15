@@ -1,4 +1,4 @@
-import { Search } from "lucide-react-native";
+import { Search, X, Calendar, Hash } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -9,23 +9,29 @@ import {
   Text,
   TextInput,
   View,
+  Modal,
+  Pressable,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { InsightCard } from "../../components/vault/InsightCard";
+import { GlassCard } from "../../components/ui/GlassCard";
+import { Tag } from "../../components/ui/Tag";
 import { theme } from "../../constants/theme";
-import { useInsyStore } from "../../store/useInsyStore";
+import { useInsyStore, VaultItem } from "../../store/useInsyStore";
 
 const FILTERS = ["all", "idea", "task", "insight"] as const;
 
 export default function VaultScreen() {
   const { vaultItems, selectedFilter, setFilter } = useInsyStore();
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
 
   const filteredItems = vaultItems.filter((item) => {
     if (selectedFilter === "all") return true;
@@ -104,12 +110,75 @@ export default function VaultScreen() {
           data={filteredItems}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
-            <InsightCard item={item} index={index} />
+            <InsightCard 
+              item={item} 
+              index={index} 
+              onPress={() => setSelectedItem(item)}
+            />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
       </KeyboardAvoidingView>
+
+      {/* Detail Modal */}
+      <Modal
+        visible={!!selectedItem}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedItem(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <Pressable 
+            style={StyleSheet.absoluteFill} 
+            onPress={() => setSelectedItem(null)} 
+          />
+          
+          <View style={styles.modalContainer}>
+            <GlassCard style={styles.modalCard} intensity={40}>
+              <View style={styles.modalHeader}>
+                <Tag type={selectedItem?.type || "idea"} />
+                <Pressable 
+                  onPress={() => setSelectedItem(null)}
+                  style={styles.closeButton}
+                >
+                  <X color="#ffffff" size={20} />
+                </Pressable>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
+                <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                
+                <View style={styles.modalDivider} />
+                
+                <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
+                <Text style={styles.transcriptionText}>
+                  {selectedItem?.transcription || selectedItem?.desc}
+                </Text>
+
+                {(selectedItem?.tags?.length || selectedItem?.due) && (
+                  <View style={styles.modalMetadata}>
+                    {selectedItem.due && (
+                      <View style={styles.metaRow}>
+                        <Calendar size={14} color={theme.colors.textMuted} />
+                        <Text style={styles.metaText}>Due: {selectedItem.due}</Text>
+                      </View>
+                    )}
+                    {selectedItem.tags?.map(tag => (
+                      <View key={tag} style={styles.metaRow}>
+                        <Hash size={14} color={theme.colors.textMuted} />
+                        <Text style={styles.metaText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            </GlassCard>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -208,5 +277,88 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 24,
     paddingBottom: 100, // For tab bar
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalContainer: {
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: 500,
+    
+  },
+  modalCard: {
+    maxHeight: "100%",
+    padding: 0, // We control padding in content
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingBottom: 0,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalTitle: {
+    color: "#ffffff",
+    fontSize: 28,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  modalTime: {
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    paddingHorizontal: 24,
+    marginTop: 6,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: 24,
+    marginVertical: 24,
+  },
+  transcriptionLabel: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  transcriptionText: {
+    color: theme.colors.textSecondary,
+    fontSize: 18,
+    lineHeight: 28,
+    fontFamily: "Inter_400Regular",
+    paddingHorizontal: 24,
+    marginBottom: 32,
+  },
+  modalMetadata: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  metaText: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
   },
 });

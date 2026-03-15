@@ -10,11 +10,13 @@ import { Tag } from "../ui/Tag";
 interface InsightCardProps {
   item: VaultItem;
   index: number;
+  onPress?: () => void;
 }
 
-export function InsightCard({ item, index }: InsightCardProps) {
+export function InsightCard({ item, index, onPress }: InsightCardProps) {
   const handlePress = () => {
     Haptics.selectionAsync();
+    onPress?.();
   };
 
   return (

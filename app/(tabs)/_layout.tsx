@@ -45,17 +45,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="stats"
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
-              <BarChart2 color={color} size={24} />
-              {focused && <View style={styles.activeIndicator} />}
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ color, focused }) => (
