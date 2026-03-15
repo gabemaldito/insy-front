@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { CustomSwitch } from "../../components/ui/CustomSwitch";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
@@ -26,11 +27,11 @@ import { SettingsRow } from "../../components/ui/SettingsRow";
 import { theme } from "../../constants/theme";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState(true);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Orb slightly larger/higher to match the image's top orange glow */}
       <OrbBackground opacity={0.35} />
       <NoiseTexture />
 
@@ -41,9 +42,6 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Avatar Area */}
@@ -104,7 +102,7 @@ export default function ProfileScreen() {
               icon={<User color="rgba(255,107,53,1)" size={16} />}
               iconBgColor="rgba(255,107,53,0.12)"
               label="Personal info"
-              onPress={() => {}}
+              onPress={() => router.push("/profile/personal")}
             />
             <SettingsRow
               icon={<Star color="rgba(250,204,21,1)" size={16} />}
@@ -115,14 +113,14 @@ export default function ProfileScreen() {
                   <Text style={styles.rowBadgeText}>Pro</Text>
                 </View>
               }
-              onPress={() => {}}
+              onPress={() => router.push("/profile/subscription")}
             />
             <SettingsRow
               icon={<Lock color="rgba(99,160,255,1)" size={16} />}
               iconBgColor="rgba(99,160,255,0.10)"
               label="Privacy & Security"
               isLast
-              onPress={() => {}}
+              onPress={() => router.push("/profile/privacy")}
             />
           </View>
         </View>
@@ -148,15 +146,15 @@ export default function ProfileScreen() {
               iconBgColor="rgba(209,213,219,0.12)"
               label="Language"
               rightElement={<Text style={styles.rowValue}>English</Text>}
-              onPress={() => {}}
+              onPress={() => router.push("/profile/language")}
             />
             <SettingsRow
               icon={<Globe color="rgba(16,185,129,1)" size={16} />}
               iconBgColor="rgba(16,185,129,0.12)"
               label="AI Model"
               rightElement={<Text style={styles.rowValue}>GPT-4o</Text>}
+              hideChevron
               isLast
-              onPress={() => {}}
             />
           </View>
         </View>

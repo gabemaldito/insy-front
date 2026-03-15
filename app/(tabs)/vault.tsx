@@ -14,11 +14,15 @@ import {
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
+  useSharedValue,
+  withSpring,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { InsightCard } from "../../components/vault/InsightCard";
@@ -39,10 +43,14 @@ export default function VaultScreen() {
   const [editTitle, setEditTitle] = useState("");
   const [editTranscription, setEditTranscription] = useState("");
 
+  // Gesture state
+  const translateY = useSharedValue(0);
+
   useEffect(() => {
     if (selectedItem) {
       setEditTitle(selectedItem.title);
       setEditTranscription(selectedItem.transcription || selectedItem.desc);
+      translateY.value = 0; // Reset position
     } else {
       setIsEditing(false);
     }
@@ -57,7 +65,6 @@ export default function VaultScreen() {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsEditing(false);
-      // Update selected item so the view mode shows new values
       setSelectedItem({
         ...selectedItem,
         title: editTitle,
@@ -65,6 +72,29 @@ export default function VaultScreen() {
       });
     }
   };
+
+  const gesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Allow dragging down only
+      if (event.translationY > 0) {
+        translateY.value = event.translationY;
+      }
+    })
+    .onEnd((event) => {
+      if (event.translationY > 150 || event.velocityY > 600) {
+        // Close modal
+        translateY.value = withTiming(800, {}, () => {
+          runOnJS(setSelectedItem)(null);
+        });
+      } else {
+        // Spring back
+        translateY.value = withSpring(0, { damping: 15 });
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const filteredItems = vaultItems.filter((item) => {
     if (selectedFilter === "all") return true;
@@ -168,116 +198,125 @@ export default function VaultScreen() {
             onPress={() => setSelectedItem(null)} 
           />
           
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalContainer}
-          >
-            <GlassCard style={styles.modalCard} intensity={40}>
-              <View style={styles.modalHeader}>
-                <View style={styles.headerLeft}>
-                  <Tag type={selectedItem?.type || "idea"} />
-                </View>
-                
-                <View style={styles.headerRight}>
-                  {isEditing ? (
-                    <>
-                      <Pressable 
-                        onPress={() => {
-                          setIsEditing(false);
-                          setEditTitle(selectedItem?.title || "");
-                          setEditTranscription(selectedItem?.transcription || selectedItem?.desc || "");
-                        }}
-                        style={[styles.actionButton, styles.cancelButton]}
-                      >
-                        <X color="#ff4444" size={18} />
-                      </Pressable>
-                      <Pressable 
-                        onPress={handleSave}
-                        style={[styles.actionButton, styles.saveButton]}
-                      >
-                        <Check color="#00ff88" size={18} />
-                      </Pressable>
-                    </>
-                  ) : (
-                    <Pressable 
-                      onPress={() => {
-                        setIsEditing(true);
-                        Haptics.selectionAsync();
-                      }}
-                      style={styles.actionButton}
-                    >
-                      <Edit2 color="#ffffff" size={18} />
-                    </Pressable>
-                  )}
-                  <View style={styles.headerDivider} />
-                  <Pressable 
-                    onPress={() => setSelectedItem(null)}
-                    style={styles.closeButton}
-                  >
-                    <X color="#ffffff" size={20} />
-                  </Pressable>
-                </View>
-              </View>
-
-              <ScrollView 
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={[styles.modalContainer, animatedStyle]}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={styles.modalContent}
               >
-                {isEditing ? (
-                  <View style={styles.editSection}>
-                    <TextInput
-                      style={styles.editTitleInput}
-                      value={editTitle}
-                      onChangeText={setEditTitle}
-                      placeholder="Title"
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      multiline
-                    />
-                    <Text style={styles.modalTime}>{selectedItem?.time}</Text>
-                    <View style={styles.modalDivider} />
-                    <Text style={styles.transcriptionLabel}>EDITING TRANSCRIPTION</Text>
-                    <TextInput
-                      style={styles.editTranscriptionInput}
-                      value={editTranscription}
-                      onChangeText={setEditTranscription}
-                      placeholder="Transcription"
-                      placeholderTextColor="rgba(255,255,255,0.2)"
-                      multiline
-                    />
+                <GlassCard style={styles.modalCard} intensity={40}>
+                  {/* Drag Handle Indicator */}
+                  <View style={styles.dragHandleContainer}>
+                    <View style={styles.dragHandle} />
                   </View>
-                ) : (
-                  <View style={styles.viewSection}>
-                    <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
-                    <Text style={styles.modalTime}>{selectedItem?.time}</Text>
-                    
-                    <View style={styles.modalDivider} />
-                    
-                    <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
-                    <Text style={styles.transcriptionText}>
-                      {selectedItem?.transcription || selectedItem?.desc}
-                    </Text>
-                  </View>
-                )}
 
-                {(selectedItem?.tags?.length || selectedItem?.due) && (
-                  <View style={styles.modalMetadata}>
-                    {selectedItem.due && (
-                      <View style={styles.metaRow}>
-                        <Calendar size={14} color={theme.colors.textMuted} />
-                        <Text style={styles.metaText}>Due: {selectedItem.due}</Text>
+                  <View style={styles.modalHeader}>
+                    <View style={styles.headerLeft}>
+                      <Tag type={selectedItem?.type || "idea"} />
+                    </View>
+                    
+                    <View style={styles.headerRight}>
+                      {isEditing ? (
+                        <>
+                          <Pressable 
+                            onPress={() => {
+                              setIsEditing(false);
+                              setEditTitle(selectedItem?.title || "");
+                              setEditTranscription(selectedItem?.transcription || selectedItem?.desc || "");
+                            }}
+                            style={[styles.actionButton, styles.cancelButton]}
+                          >
+                            <X color="#ff4444" size={18} />
+                          </Pressable>
+                          <Pressable 
+                            onPress={handleSave}
+                            style={[styles.actionButton, styles.saveButton]}
+                          >
+                            <Check color="#00ff88" size={18} />
+                          </Pressable>
+                        </>
+                      ) : (
+                        <Pressable 
+                          onPress={() => {
+                            setIsEditing(true);
+                            Haptics.selectionAsync();
+                          }}
+                          style={styles.actionButton}
+                        >
+                          <Edit2 color="#ffffff" size={18} />
+                        </Pressable>
+                      )}
+                      <View style={styles.headerDivider} />
+                      <Pressable 
+                        onPress={() => setSelectedItem(null)}
+                        style={styles.closeButton}
+                      >
+                        <X color="#ffffff" size={20} />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {isEditing ? (
+                      <View style={styles.editSection}>
+                        <TextInput
+                          style={styles.editTitleInput}
+                          value={editTitle}
+                          onChangeText={setEditTitle}
+                          placeholder="Title"
+                          placeholderTextColor="rgba(255,255,255,0.2)"
+                          multiline
+                        />
+                        <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                        <View style={styles.modalDivider} />
+                        <Text style={styles.transcriptionLabel}>EDITING TRANSCRIPTION</Text>
+                        <TextInput
+                          style={styles.editTranscriptionInput}
+                          value={editTranscription}
+                          onChangeText={setEditTranscription}
+                          placeholder="Transcription"
+                          placeholderTextColor="rgba(255,255,255,0.2)"
+                          multiline
+                        />
+                      </View>
+                    ) : (
+                      <View style={styles.viewSection}>
+                        <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
+                        <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                        
+                        <View style={styles.modalDivider} />
+                        
+                        <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
+                        <Text style={styles.transcriptionText}>
+                          {selectedItem?.transcription || selectedItem?.desc}
+                        </Text>
                       </View>
                     )}
-                    {selectedItem.tags?.map(tag => (
-                      <View key={tag} style={styles.metaRow}>
-                        <Hash size={14} color={theme.colors.textMuted} />
-                        <Text style={styles.metaText}>{tag}</Text>
+
+                    {(selectedItem?.tags?.length || selectedItem?.due) && (
+                      <View style={styles.modalMetadata}>
+                        {selectedItem.due && (
+                          <View style={styles.metaRow}>
+                            <Calendar size={14} color={theme.colors.textMuted} />
+                            <Text style={styles.metaText}>Due: {selectedItem.due}</Text>
+                          </View>
+                        )}
+                        {selectedItem.tags?.map(tag => (
+                          <View key={tag} style={styles.metaRow}>
+                            <Hash size={14} color={theme.colors.textMuted} />
+                            <Text style={styles.metaText}>{tag}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                )}
-              </ScrollView>
-            </GlassCard>
-          </KeyboardAvoidingView>
+                    )}
+                  </ScrollView>
+                </GlassCard>
+              </KeyboardAvoidingView>
+            </Animated.View>
+          </GestureDetector>
         </View>
       </Modal>
     </SafeAreaView>
@@ -388,18 +427,31 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "92%",
   },
+  modalContent: {
+    flex: 1,
+  },
   modalCard: {
     flex: 1,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: 0,
   },
+  dragHandleContainer: {
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 8, // Reduced since we have drag handle
     paddingBottom: 10,
   },
   headerLeft: {
