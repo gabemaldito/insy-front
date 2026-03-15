@@ -1,17 +1,25 @@
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { Mic } from "lucide-react-native";
-import React, { useEffect, useRef } from "react";
+import React, { useRef, useMemo } from "react";
 import {
-  Easing,
   Pressable,
-  Animated as RNAnimated,
   StyleSheet,
   Text,
   View,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+  useSharedValue,
+  useFrameCallback,
+  useAnimatedProps,
+  withSpring,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import Svg, { Path, Defs, RadialGradient, Stop, Circle } from "react-native-svg";
 
 import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
@@ -19,40 +27,69 @@ import { OrbBackground } from "../../components/ui/OrbBackground";
 import { theme } from "../../constants/theme";
 import { useInsyStore } from "../../store/useInsyStore";
 
+const { width } = Dimensions.get("window");
+const SIZE = 130;
+const CANVAS_SIZE = SIZE + 100;
+const CX = CANVAS_SIZE / 2;
+const CY = CANVAS_SIZE / 2;
+const BASE_R = SIZE / 2;
+const NUM_POINTS = 64; // Reduzido para performance SVG máxima
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
 export default function DashboardScreen() {
   const { isRecording, setRecording, captures } = useInsyStore();
-  const pulseAnim = useRef(new RNAnimated.Value(1)).current;
   const recordingRef = useRef<Audio.Recording | null>(null);
-
-  useEffect(() => {
-    let loop: RNAnimated.CompositeAnimation;
-    if (!isRecording) {
-      loop = RNAnimated.loop(
-        RNAnimated.sequence([
-          RNAnimated.timing(pulseAnim, {
-            toValue: 1.06,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          RNAnimated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      loop.start();
-    } else {
-      pulseAnim.setValue(1.1);
-    }
-    return () => {
-      if (loop) loop.stop();
-    };
-  }, [isRecording, pulseAnim]);
-
   const pressStartAt = useRef<number>(0);
+
+  // Reanimated shared values
+  const amp = useSharedValue(0);
+  const elapsed = useSharedValue(0);
+  const voiceTarget = useSharedValue(0);
+  const voiceAmp = useSharedValue(0);
+  const voiceTimer = useSharedValue(0);
+
+  // Animation loop
+  useFrameCallback((frameInfo) => {
+    "worklet";
+    const dt = Math.min((frameInfo.timeSincePreviousFrame ?? 16) / 1000, 0.05);
+    elapsed.value += dt;
+
+    if (isRecording) {
+      voiceTimer.value += dt;
+      if (voiceTimer.value > 0.15) {
+        voiceTimer.value = 0;
+        voiceTarget.value = 4 + Math.random() * 8;
+      }
+      voiceAmp.value += (voiceTarget.value - voiceAmp.value) * dt * 10;
+      amp.value += (voiceAmp.value - amp.value) * dt * 8;
+    } else {
+      amp.value += (0 - amp.value) * dt * 5;
+    }
+  });
+
+  // SVG Animated Props
+  const blobProps = useAnimatedProps(() => {
+    const t = elapsed.value;
+    const waveAmp = amp.value;
+    let d = "";
+
+    for (let i = 0; i <= NUM_POINTS; i++) {
+      const angle = (i / NUM_POINTS) * Math.PI * 2;
+      const noise =
+        Math.sin(angle * 2 + t * 2) * waveAmp * 0.4 +
+        Math.sin(angle * 3 - t * 2.5) * waveAmp * 0.3 +
+        Math.sin(angle * 4 + t * 1.8) * waveAmp * 0.2;
+      
+      const r = BASE_R + noise;
+      const x = CX + Math.cos(angle) * r;
+      const y = CY + Math.sin(angle) * r;
+      
+      if (i === 0) d += `M ${x.toFixed(2)},${y.toFixed(2)}`;
+      else d += ` L ${x.toFixed(2)},${y.toFixed(2)}`;
+    }
+    return { d: d + " Z" };
+  });
 
   const startRecording = async () => {
     try {
@@ -82,13 +119,15 @@ export default function DashboardScreen() {
   const stopRecording = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setRecording(false);
+    voiceAmp.value = 0;
+    voiceTarget.value = 0;
 
     if (recordingRef.current) {
       try {
         await recordingRef.current.stopAndUnloadAsync();
         const uri = recordingRef.current.getURI();
-        console.log("Recording stopped and stored at", uri);
-        // TODO: enviar URI para transcrição via endpoint POST /captures
+        console.log("Recording stored at", uri);
+        // Em um app real, processaríamos aqui. Para o MVP, mostramos logs.
       } catch (error) {
         console.error("Failed to stop recording", error);
       }
@@ -96,30 +135,21 @@ export default function DashboardScreen() {
     }
   };
 
-  const handlePressIn = async () => {
-    const currentState = useInsyStore.getState().isRecording;
-    if (currentState) {
-      await stopRecording();
+  const handlePressIn = () => {
+    if (isRecording) {
+      stopRecording();
       pressStartAt.current = 0;
       return;
     }
-
     pressStartAt.current = Date.now();
-    await startRecording();
+    startRecording();
   };
 
-  const handlePressOut = async () => {
-    const currentState = useInsyStore.getState().isRecording;
-    if (!currentState || pressStartAt.current === 0) return;
-
+  const handlePressOut = () => {
+    if (!isRecording || pressStartAt.current === 0) return;
     const duration = Date.now() - pressStartAt.current;
-    if (duration < 300) {
-      // Quick tap, leave it recording
-      return;
-    }
-
-    // Long hold released, stop recording
-    await stopRecording();
+    if (duration < 500) return; // Se for só um tap rápido, ignora o release (fica no modo "on/off")
+    stopRecording();
   };
 
   return (
@@ -132,63 +162,86 @@ export default function DashboardScreen() {
           <Text style={styles.greeting}>Good morning!</Text>
           <Text style={styles.subtitle}>What's on your mind?</Text>
         </View>
+        <View style={styles.topIcon}>
+          <Text style={styles.betaBadge}>BETA</Text>
+        </View>
       </View>
 
       <View style={styles.mainContent}>
-        <View style={styles.micWrapper}>
-          <RNAnimated.View
-            style={[
-              styles.ringOuter,
-              isRecording && { borderColor: "rgba(255,107,53,0.4)" },
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          />
-          <RNAnimated.View
-            style={[
-              styles.ringInner,
-              isRecording && { borderColor: "rgba(255,107,53,0.5)" },
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          />
-          <Pressable
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            style={({ pressed }) => [
-              styles.micButton,
-              pressed && { transform: [{ scale: 0.95 }] },
-            ]}
-          >
-            <LinearGradient
-              colors={["#ff6b35", "#ff4d00"]}
-              style={styles.micGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Mic color="#ffffff" size={40} />
-            </LinearGradient>
-          </Pressable>
-        </View>
-        <Text
-          style={[
-            styles.holdText,
-            isRecording && { color: theme.colors.primary },
-          ]}
+        <Pressable
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={styles.micContainer}
         >
-          {isRecording
-            ? "Gravando... Toque para parar"
-            : "Tap or Hold to record"}
+          <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.svg}>
+            <Defs>
+              <RadialGradient id="blobGrad" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity="1" />
+                <Stop offset="100%" stopColor="#c0150a" stopOpacity="1" />
+              </RadialGradient>
+              <RadialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity="0.4" />
+                <Stop offset="100%" stopColor={theme.colors.primary} stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+
+            {/* Glow pulsante de fundo */}
+            <Circle
+              cx={CX}
+              cy={CY}
+              r={BASE_R + 40}
+              fill="url(#glowGrad)"
+              opacity={isRecording ? 0.6 : 0.2}
+            />
+
+            {/* Anéis externos estáticos (mais estáveis) */}
+            <Circle
+              cx={CX}
+              cy={CY}
+              r={BASE_R + 18}
+              stroke="#ffffff"
+              strokeWidth={0.5}
+              fill="none"
+              opacity={0.15}
+            />
+            <Circle
+              cx={CX}
+              cy={CY}
+              r={BASE_R + 32}
+              stroke="#ffffff"
+              strokeWidth={0.5}
+              fill="none"
+              opacity={0.08}
+            />
+
+            {/* O BLOB - Agora em react-native-svg para estabilidade total */}
+            <AnimatedPath
+              animatedProps={blobProps}
+              fill="url(#blobGrad)"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth={1}
+            />
+          </Svg>
+
+          <View style={styles.micIconWrapper} pointerEvents="none">
+            <Mic color="#ffffff" size={42} strokeWidth={1.5} />
+          </View>
+        </Pressable>
+
+        <Text style={[styles.statusText, isRecording && { color: theme.colors.primary }]}>
+          {isRecording ? "LISTENING..." : "HOLD TO RECORD"}
         </Text>
       </View>
 
-      <View style={styles.recentSection}>
-        <Text style={styles.recentLabel}>RECENT CAPTURES</Text>
-        {captures.slice(0, 2).map((capture, i) => (
-          <GlassCard key={capture.id} style={styles.recentCard}>
-            <View style={styles.recentInfo}>
-              <Text style={styles.recentTitle}>{capture.title}</Text>
-              <Text style={styles.recentSubtitle}>{capture.subtitle}</Text>
+      <View style={styles.footer}>
+        <Text style={styles.footerLabel}>RECENT CAPTURES</Text>
+        {captures.slice(0, 2).map((item) => (
+          <GlassCard key={item.id} style={styles.captureCard}>
+            <View style={styles.captureInfo}>
+              <Text style={styles.captureTitle}>{item.title}</Text>
+              <Text style={styles.captureSubtitle}>{item.subtitle}</Text>
             </View>
-            <Text style={styles.recentTime}>{capture.timestamp}</Text>
+            <Text style={styles.captureTime}>{item.timestamp}</Text>
           </GlassCard>
         ))}
       </View>
@@ -205,116 +258,99 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingTop: 16,
   },
   greeting: {
     color: theme.colors.textSecondary,
     fontSize: 12,
     fontFamily: "Inter_500Medium",
+    letterSpacing: 0.5,
   },
   subtitle: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 20,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+    marginTop: 2,
   },
-  avatarContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+  topIcon: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  betaBadge: {
+    color: theme.colors.primary,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    backgroundColor: "rgba(255,107,53,0.1)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,107,53,0.2)",
   },
   mainContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  micWrapper: {
-    width: 200,
-    height: 200,
+  micContainer: {
+    width: CANVAS_SIZE,
+    height: CANVAS_SIZE,
     justifyContent: "center",
     alignItems: "center",
   },
-  ringOuter: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "rgba(255,107,53,0.1)",
-  },
-  ringInner: {
+  svg: {
     position: "absolute",
-    width: 168,
-    height: 168,
-    borderRadius: 84,
-    borderWidth: 1,
-    borderColor: "rgba(255,107,53,0.18)",
   },
-  micButton: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    overflow: "hidden",
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 8,
+  micIconWrapper: {
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
-  micGradient: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  holdText: {
+  statusText: {
+    marginTop: 40,
     color: theme.colors.textMuted,
     fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginTop: 24,
+    fontWeight: "600",
+    letterSpacing: 2,
     fontFamily: "Inter_600SemiBold",
   },
-  recentSection: {
+  footer: {
     paddingHorizontal: 24,
-    paddingBottom: 100, // Make room for bottom tab bar
+    paddingBottom: 100,
   },
-  recentLabel: {
+  footerLabel: {
     color: theme.colors.textMuted,
-    fontSize: 11,
-    textTransform: "uppercase",
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
     marginBottom: 12,
-    letterSpacing: 0.5,
   },
-  recentCard: {
+  captureCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  recentInfo: {
-    flex: 1,
-  },
-  recentTitle: {
-    color: theme.colors.textPrimary,
+  captureInfo: { flex: 1 },
+  captureTitle: {
+    color: "#ffffff",
     fontSize: 14,
     fontWeight: "600",
     fontFamily: "Inter_600SemiBold",
   },
-  recentSubtitle: {
+  captureSubtitle: {
     color: theme.colors.textSecondary,
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
-  recentTime: {
+  captureTime: {
     color: theme.colors.textMuted,
     fontSize: 10,
-    fontFamily: "Inter_500Medium",
   },
 });
