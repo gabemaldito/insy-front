@@ -1,5 +1,5 @@
-import { Search, X, Calendar, Hash } from "lucide-react-native";
-import React, { useState } from "react";
+import { Search, X, Calendar, Hash, Edit2, Check } from "lucide-react-native";
+import React, { useState, useEffect } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { InsightCard } from "../../components/vault/InsightCard";
@@ -29,9 +30,41 @@ import { useInsyStore, VaultItem } from "../../store/useInsyStore";
 const FILTERS = ["all", "idea", "task", "insight"] as const;
 
 export default function VaultScreen() {
-  const { vaultItems, selectedFilter, setFilter } = useInsyStore();
+  const { vaultItems, selectedFilter, setFilter, updateVaultItem } = useInsyStore();
   const [isFocused, setIsFocused] = useState(false);
   const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
+  
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTranscription, setEditTranscription] = useState("");
+
+  useEffect(() => {
+    if (selectedItem) {
+      setEditTitle(selectedItem.title);
+      setEditTranscription(selectedItem.transcription || selectedItem.desc);
+    } else {
+      setIsEditing(false);
+    }
+  }, [selectedItem]);
+
+  const handleSave = () => {
+    if (selectedItem) {
+      updateVaultItem(selectedItem.id, {
+        title: editTitle,
+        transcription: editTranscription,
+        desc: editTranscription.length > 50 ? editTranscription.substring(0, 47) + "..." : editTranscription
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsEditing(false);
+      // Update selected item so the view mode shows new values
+      setSelectedItem({
+        ...selectedItem,
+        title: editTitle,
+        transcription: editTranscription
+      });
+    }
+  };
 
   const filteredItems = vaultItems.filter((item) => {
     if (selectedFilter === "all") return true;
@@ -135,28 +168,96 @@ export default function VaultScreen() {
             onPress={() => setSelectedItem(null)} 
           />
           
-          <View style={styles.modalContainer}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalContainer}
+          >
             <GlassCard style={styles.modalCard} intensity={40}>
               <View style={styles.modalHeader}>
-                <Tag type={selectedItem?.type || "idea"} />
-                <Pressable 
-                  onPress={() => setSelectedItem(null)}
-                  style={styles.closeButton}
-                >
-                  <X color="#ffffff" size={20} />
-                </Pressable>
+                <View style={styles.headerLeft}>
+                  <Tag type={selectedItem?.type || "idea"} />
+                </View>
+                
+                <View style={styles.headerRight}>
+                  {isEditing ? (
+                    <>
+                      <Pressable 
+                        onPress={() => {
+                          setIsEditing(false);
+                          setEditTitle(selectedItem?.title || "");
+                          setEditTranscription(selectedItem?.transcription || selectedItem?.desc || "");
+                        }}
+                        style={[styles.actionButton, styles.cancelButton]}
+                      >
+                        <X color="#ff4444" size={18} />
+                      </Pressable>
+                      <Pressable 
+                        onPress={handleSave}
+                        style={[styles.actionButton, styles.saveButton]}
+                      >
+                        <Check color="#00ff88" size={18} />
+                      </Pressable>
+                    </>
+                  ) : (
+                    <Pressable 
+                      onPress={() => {
+                        setIsEditing(true);
+                        Haptics.selectionAsync();
+                      }}
+                      style={styles.actionButton}
+                    >
+                      <Edit2 color="#ffffff" size={18} />
+                    </Pressable>
+                  )}
+                  <View style={styles.headerDivider} />
+                  <Pressable 
+                    onPress={() => setSelectedItem(null)}
+                    style={styles.closeButton}
+                  >
+                    <X color="#ffffff" size={20} />
+                  </Pressable>
+                </View>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
-                <Text style={styles.modalTime}>{selectedItem?.time}</Text>
-                
-                <View style={styles.modalDivider} />
-                
-                <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
-                <Text style={styles.transcriptionText}>
-                  {selectedItem?.transcription || selectedItem?.desc}
-                </Text>
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {isEditing ? (
+                  <View style={styles.editSection}>
+                    <TextInput
+                      style={styles.editTitleInput}
+                      value={editTitle}
+                      onChangeText={setEditTitle}
+                      placeholder="Title"
+                      placeholderTextColor="rgba(255,255,255,0.2)"
+                      multiline
+                    />
+                    <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                    <View style={styles.modalDivider} />
+                    <Text style={styles.transcriptionLabel}>EDITING TRANSCRIPTION</Text>
+                    <TextInput
+                      style={styles.editTranscriptionInput}
+                      value={editTranscription}
+                      onChangeText={setEditTranscription}
+                      placeholder="Transcription"
+                      placeholderTextColor="rgba(255,255,255,0.2)"
+                      multiline
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.viewSection}>
+                    <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
+                    <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                    
+                    <View style={styles.modalDivider} />
+                    
+                    <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
+                    <Text style={styles.transcriptionText}>
+                      {selectedItem?.transcription || selectedItem?.desc}
+                    </Text>
+                  </View>
+                )}
 
                 {(selectedItem?.tags?.length || selectedItem?.due) && (
                   <View style={styles.modalMetadata}>
@@ -176,7 +277,7 @@ export default function VaultScreen() {
                 )}
               </ScrollView>
             </GlassCard>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -280,76 +381,127 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalContainer: {
-    justifyContent: "center",
     width: "100%",
-    maxWidth: 500,
-    
+    height: "92%",
   },
   modalCard: {
-    maxHeight: "100%",
-    padding: 0, // We control padding in content
+    flex: 1,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: 0,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    paddingBottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 10,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    marginHorizontal: 4,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  saveButton: {
+    backgroundColor: "rgba(0,255,136,0.08)",
+    borderColor: "rgba(0,255,136,0.2)",
+  },
+  cancelButton: {
+    backgroundColor: "rgba(255,68,68,0.08)",
+    borderColor: "rgba(255,68,68,0.2)",
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.05)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalTitle: {
+  viewSection: {},
+  editSection: {},
+  editTitleInput: {
     color: "#ffffff",
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "700",
     fontFamily: "Inter_700Bold",
     paddingHorizontal: 24,
-    marginTop: 16,
+    marginTop: 20,
+  },
+  editTranscriptionInput: {
+    color: theme.colors.textSecondary,
+    fontSize: 22,
+    lineHeight: 32,
+    fontFamily: "Inter_400Regular",
+    paddingHorizontal: 24,
+    marginBottom: 40,
+    minHeight: 200,
+    textAlignVertical: "top",
+  },
+  modalTitle: {
+    color: "#ffffff",
+    fontSize: 32,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+    paddingHorizontal: 24,
+    marginTop: 20,
   },
   modalTime: {
     color: theme.colors.textMuted,
-    fontSize: 13,
+    fontSize: 14,
     paddingHorizontal: 24,
-    marginTop: 6,
+    marginTop: 8,
   },
   modalDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
     marginHorizontal: 24,
-    marginVertical: 24,
+    marginVertical: 28,
   },
   transcriptionLabel: {
     color: theme.colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     paddingHorizontal: 24,
     marginBottom: 16,
   },
   transcriptionText: {
     color: theme.colors.textSecondary,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 22,
+    lineHeight: 32,
     fontFamily: "Inter_400Regular",
     paddingHorizontal: 24,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   modalMetadata: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 14,
+    paddingBottom: 50,
+    gap: 16,
   },
   metaRow: {
     flexDirection: "row",

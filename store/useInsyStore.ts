@@ -28,6 +28,7 @@ interface InsyStore {
   setRecording: (v: boolean) => void;
   setFilter: (f: "all" | "idea" | "task" | "insight") => void;
   addCapture: (c: Capture) => void;
+  updateVaultItem: (id: number, updates: Partial<VaultItem>) => void;
 }
 
 const mockVaultItems: VaultItem[] = [
@@ -85,4 +86,10 @@ export const useInsyStore = create<InsyStore>((set) => ({
   setRecording: (v) => set({ isRecording: v }),
   setFilter: (f) => set({ selectedFilter: f }),
   addCapture: (c) => set((state) => ({ captures: [c, ...state.captures] })),
+  updateVaultItem: (id, updates) =>
+    set((state) => ({
+      vaultItems: state.vaultItems.map((item) =>
+        item.id === id ? { ...item, ...updates } : item
+      ),
+    })),
 }));
