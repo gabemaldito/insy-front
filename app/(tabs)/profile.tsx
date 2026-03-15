@@ -15,6 +15,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -29,6 +30,24 @@ import { theme } from "../../constants/theme";
 export default function ProfileScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(true);
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out of your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Sign Out", 
+          style: "destructive",
+          onPress: () => {
+            // Redirect to auth screen
+            router.replace("/(auth)");
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -168,7 +187,7 @@ export default function ProfileScreen() {
             textColor="rgba(239,68,68,0.75)"
             hideChevron
             isLast
-            onPress={() => {}}
+            onPress={handleSignOut}
           />
         </View>
 
