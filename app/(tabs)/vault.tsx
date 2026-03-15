@@ -1,7 +1,7 @@
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Calendar, Check, Edit2, Hash, Search, X } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -27,6 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
+import { SectionLabel } from "../../components/ui/SectionLabel";
 import { Tag } from "../../components/ui/Tag";
 import { InsightCard } from "../../components/vault/InsightCard";
 import { theme } from "../../constants/theme";
@@ -45,8 +46,11 @@ export default function VaultScreen() {
   const [editTitle, setEditTitle] = useState("");
   const [editTranscription, setEditTranscription] = useState("");
   const [editType, setEditType] = useState("");
-  const [editTypeColor, setEditTypeColor] = useState<string | undefined>(undefined);
+  const [editTypeColor, setEditTypeColor] = useState<string | undefined>(
+    undefined,
+  );
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [editDue, setEditDue] = useState<string | undefined>(undefined);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [isAddingNewType, setIsAddingNewType] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
@@ -59,6 +63,8 @@ export default function VaultScreen() {
     { label: "Personal", color: "#AF52DE" },
   ];
 
+  const scrollViewRef = useRef<ScrollView>(null);
+
   // Gesture state
   const translateY = useSharedValue(0);
 
@@ -69,6 +75,7 @@ export default function VaultScreen() {
       setEditType(selectedItem.type);
       setEditTypeColor(selectedItem.typeColor);
       setEditTags(selectedItem.tags || []);
+      setEditDue(selectedItem.due);
       translateY.value = 0; // Reset position
     } else {
       setIsEditing(false);
@@ -86,6 +93,7 @@ export default function VaultScreen() {
         type: editType,
         typeColor: editTypeColor,
         tags: editTags,
+        due: editType.toLowerCase() === "task" ? editDue : undefined,
         desc:
           editTranscription.length > 50
             ? editTranscription.substring(0, 47) + "..."
@@ -100,6 +108,7 @@ export default function VaultScreen() {
         type: editType,
         typeColor: editTypeColor,
         tags: editTags,
+        due: editType.toLowerCase() === "task" ? editDue : undefined,
       });
     }
   };
@@ -111,12 +120,13 @@ export default function VaultScreen() {
 
   const handleTranscriptionChange = (text: string) => {
     setEditTranscription(text);
-    // Detect hashtags
+    // Detect hashtags - only words starting with #
     const hashMatches = text.match(/#(\w+)/g);
     if (hashMatches) {
       const newTags = hashMatches.map((m) => m.substring(1));
-      // Add unique new tags to the list
       setEditTags((prev) => {
+        // Keep existing tags that were manually added or already present
+        // but ensure all hashtags from text are included
         const combined = [...prev, ...newTags];
         return Array.from(new Set(combined));
       });
@@ -258,6 +268,7 @@ export default function VaultScreen() {
               <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.modalContent}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
               >
                 <GlassCard style={styles.modalCard} intensity={40}>
                   {/* Drag Handle Indicator */}
@@ -279,11 +290,16 @@ export default function VaultScreen() {
                           </Pressable>
 
                           {showTypeSelector && (
-                            <GlassCard style={styles.typeSelector} intensity={60}>
+                            <GlassCard
+                              style={styles.typeSelector}
+                              intensity={60}
+                            >
                               <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.typeSelectorScroll}
+                                contentContainerStyle={
+                                  styles.typeSelectorScroll
+                                }
                               >
                                 {DEFAULT_CATEGORIES.map((cat) => (
                                   <Pressable
@@ -292,7 +308,9 @@ export default function VaultScreen() {
                                       setEditType(cat.label);
                                       setEditTypeColor(cat.color);
                                       setShowTypeSelector(false);
-                                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                      Haptics.impactAsync(
+                                        Haptics.ImpactFeedbackStyle.Light,
+                                      );
                                     }}
                                     style={styles.typeOption}
                                   >
@@ -318,7 +336,7 @@ export default function VaultScreen() {
                                         }
                                       }}
                                     />
-                                    <Pressable 
+                                    <Pressable
                                       onPress={() => setIsAddingNewType(false)}
                                       style={styles.cancelTypeBtn}
                                     >
@@ -329,12 +347,16 @@ export default function VaultScreen() {
                                   <Pressable
                                     onPress={() => {
                                       setIsAddingNewType(true);
-                                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                      Haptics.impactAsync(
+                                        Haptics.ImpactFeedbackStyle.Light,
+                                      );
                                     }}
                                     style={styles.typeOption}
                                   >
                                     <View style={styles.addTypeButton}>
-                                      <Text style={styles.addTypeText}>+ NEW</Text>
+                                      <Text style={styles.addTypeText}>
+                                        + NEW
+                                      </Text>
                                     </View>
                                   </Pressable>
                                 )}
@@ -365,6 +387,7 @@ export default function VaultScreen() {
                               setEditType(selectedItem?.type || "");
                               setEditTypeColor(selectedItem?.typeColor);
                               setEditTags(selectedItem?.tags || []);
+                              setEditDue(selectedItem?.due);
                               setShowTypeSelector(false);
                             }}
                             style={[styles.actionButton, styles.cancelButton]}
@@ -400,8 +423,15 @@ export default function VaultScreen() {
                   </View>
 
                   <ScrollView
+                    ref={scrollViewRef}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={styles.modalScrollContent}
+                    onContentSizeChange={() => {
+                      if (isEditing) {
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                      }
+                    }}
                   >
                     {isEditing ? (
                       <View style={styles.editSection}>
@@ -420,14 +450,41 @@ export default function VaultScreen() {
                         <Text style={styles.transcriptionLabel}>
                           EDITING TRANSCRIPTION
                         </Text>
-                        <TextInput
-                          style={styles.editTranscriptionInput}
-                          value={editTranscription}
-                          onChangeText={handleTranscriptionChange}
-                          placeholder="Transcription"
-                          placeholderTextColor="rgba(255,255,255,0.2)"
-                          multiline
-                        />
+                          <TextInput
+                            style={styles.editTranscriptionInput}
+                            value={editTranscription}
+                            onChangeText={handleTranscriptionChange}
+                            onFocus={() => {
+                              setTimeout(() => {
+                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                              }, 100);
+                            }}
+                            placeholder="Transcription"
+                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            multiline
+                          />
+
+                        {editType.toLowerCase() === "task" && (
+                          <View style={styles.editDueContainer}>
+                            <SectionLabel
+                              label="DEADLINE"
+                              style={{ marginBottom: 12 }}
+                            />
+                            <View style={styles.dueInputWrapper}>
+                              <Calendar
+                                size={18}
+                                color={theme.colors.primary}
+                              />
+                              <TextInput
+                                style={styles.dueInput}
+                                value={editDue}
+                                onChangeText={setEditDue}
+                                placeholder="e.g. Tomorrow, 10am"
+                                placeholderTextColor="rgba(255,255,255,0.2)"
+                              />
+                            </View>
+                          </View>
+                        )}
                       </View>
                     ) : (
                       <View style={styles.viewSection}>
@@ -449,23 +506,31 @@ export default function VaultScreen() {
                       </View>
                     )}
 
-                    {(isEditing ? editTags.length > 0 : (selectedItem?.tags?.length || selectedItem?.due)) && (
+                    {(isEditing
+                      ? editTags.length > 0 ||
+                        (editType.toLowerCase() === "task" && editDue)
+                      : selectedItem?.tags?.length || selectedItem?.due) && (
                       <View style={styles.modalMetadata}>
-                        {selectedItem?.due && (
+                        {(isEditing
+                          ? editType.toLowerCase() === "task" && editDue
+                          : selectedItem?.due) && (
                           <View style={styles.metaRow}>
                             <Calendar
                               size={14}
                               color={theme.colors.textMuted}
                             />
                             <Text style={styles.metaText}>
-                              Due: {selectedItem.due}
+                              Due: {isEditing ? editDue : selectedItem?.due}
                             </Text>
                           </View>
                         )}
                         <View style={styles.tagsContainer}>
-                          {(isEditing ? editTags : (selectedItem?.tags || [])).map((tag) => (
-                            <Pressable 
-                              key={tag} 
+                          {(isEditing
+                            ? editTags
+                            : selectedItem?.tags || []
+                          ).map((tag) => (
+                            <Pressable
+                              key={tag}
                               style={styles.tagPill}
                               onPress={() => isEditing && removeTag(tag)}
                             >
@@ -598,6 +663,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 120, // Enough space to keep the cursor well above the keyboard
   },
   modalCard: {
     flex: 1,
@@ -814,5 +882,26 @@ const styles = StyleSheet.create({
   },
   cancelTypeBtn: {
     marginLeft: 4,
+  },
+  editDueContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 40,
+  },
+  dueInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    gap: 12,
+  },
+  dueInput: {
+    flex: 1,
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
   },
 });
