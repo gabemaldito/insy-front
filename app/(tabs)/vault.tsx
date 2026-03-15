@@ -6,6 +6,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Modal,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -119,17 +120,34 @@ export default function VaultScreen() {
   };
 
   const handleTranscriptionChange = (text: string) => {
-    setEditTranscription(text);
-    // Detect hashtags - only words starting with #
-    const hashMatches = text.match(/#(\w+)/g);
-    if (hashMatches) {
-      const newTags = hashMatches.map((m) => m.substring(1));
+    // Detect hashtags pattern #word.
+    // Matches # followed by word characters and terminated by a .
+    const hashRegex = /#(\w+)\./g;
+    const matches = Array.from(text.matchAll(hashRegex));
+
+    if (matches.length > 0) {
+      let filteredText = text;
+      const discoveredTags: string[] = [];
+
+      matches.forEach((match) => {
+        const fullMatch = match[0];
+        const tagName = match[1];
+        discoveredTags.push(tagName);
+        // Remove #word. from the text
+        filteredText = filteredText.replace(fullMatch, "");
+      });
+
+      // Update states with filtered text
+      setEditTranscription(filteredText);
       setEditTags((prev) => {
-        // Keep existing tags that were manually added or already present
-        // but ensure all hashtags from text are included
-        const combined = [...prev, ...newTags];
+        const combined = [...prev, ...discoveredTags];
         return Array.from(new Set(combined));
       });
+
+      // Haptic "pop" effect
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      setEditTranscription(text);
     }
   };
 
@@ -433,30 +451,33 @@ export default function VaultScreen() {
                       }
                     }}
                   >
-                    {isEditing ? (
-                      <View style={styles.editSection}>
-                        <TextInput
-                          style={styles.editTitleInput}
-                          value={editTitle}
-                          onChangeText={setEditTitle}
-                          placeholder="Title"
-                          placeholderTextColor="rgba(255,255,255,0.2)"
-                          multiline
-                        />
-                        <Text style={styles.modalTime}>
-                          {selectedItem?.time}
-                        </Text>
-                        <View style={styles.modalDivider} />
-                        <Text style={styles.transcriptionLabel}>
-                          EDITING TRANSCRIPTION
-                        </Text>
+                    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+                      {isEditing ? (
+                        <View style={styles.editSection}>
+                          <TextInput
+                            style={styles.editTitleInput}
+                            value={editTitle}
+                            onChangeText={setEditTitle}
+                            placeholder="Title"
+                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            multiline
+                          />
+                          <Text style={styles.modalTime}>
+                            {selectedItem?.time}
+                          </Text>
+                          <View style={styles.modalDivider} />
+                          <Text style={styles.transcriptionLabel}>
+                            EDITING TRANSCRIPTION
+                          </Text>
                           <TextInput
                             style={styles.editTranscriptionInput}
                             value={editTranscription}
                             onChangeText={handleTranscriptionChange}
                             onFocus={() => {
                               setTimeout(() => {
-                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                                scrollViewRef.current?.scrollToEnd({
+                                  animated: true,
+                                });
                               }, 100);
                             }}
                             placeholder="Transcription"
@@ -464,88 +485,95 @@ export default function VaultScreen() {
                             multiline
                           />
 
-                        {editType.toLowerCase() === "task" && (
-                          <View style={styles.editDueContainer}>
-                            <SectionLabel
-                              label="DEADLINE"
-                              style={{ marginBottom: 12 }}
-                            />
-                            <View style={styles.dueInputWrapper}>
-                              <Calendar
-                                size={18}
-                                color={theme.colors.primary}
+                          {editType.toLowerCase() === "task" && (
+                            <View style={styles.editDueContainer}>
+                              <SectionLabel
+                                label="DEADLINE"
+                                style={{ marginBottom: 12 }}
                               />
-                              <TextInput
-                                style={styles.dueInput}
-                                value={editDue}
-                                onChangeText={setEditDue}
-                                placeholder="e.g. Tomorrow, 10am"
-                                placeholderTextColor="rgba(255,255,255,0.2)"
-                              />
+                              <View style={styles.dueInputWrapper}>
+                                <Calendar
+                                  size={18}
+                                  color={theme.colors.primary}
+                                />
+                                <TextInput
+                                  style={styles.dueInput}
+                                  value={editDue}
+                                  onChangeText={setEditDue}
+                                  placeholder="e.g. Tomorrow, 10am"
+                                  placeholderTextColor="rgba(255,255,255,0.2)"
+                                />
+                              </View>
                             </View>
-                          </View>
-                        )}
-                      </View>
-                    ) : (
-                      <View style={styles.viewSection}>
-                        <Text style={styles.modalTitle}>
-                          {selectedItem?.title}
-                        </Text>
-                        <Text style={styles.modalTime}>
-                          {selectedItem?.time}
-                        </Text>
-
-                        <View style={styles.modalDivider} />
-
-                        <Text style={styles.transcriptionLabel}>
-                          TRANSCRIPTION
-                        </Text>
-                        <Text style={styles.transcriptionText}>
-                          {selectedItem?.transcription || selectedItem?.desc}
-                        </Text>
-                      </View>
-                    )}
-
-                    {(isEditing
-                      ? editTags.length > 0 ||
-                        (editType.toLowerCase() === "task" && editDue)
-                      : selectedItem?.tags?.length || selectedItem?.due) && (
-                      <View style={styles.modalMetadata}>
-                        {(isEditing
-                          ? editType.toLowerCase() === "task" && editDue
-                          : selectedItem?.due) && (
-                          <View style={styles.metaRow}>
-                            <Calendar
-                              size={14}
-                              color={theme.colors.textMuted}
-                            />
-                            <Text style={styles.metaText}>
-                              Due: {isEditing ? editDue : selectedItem?.due}
-                            </Text>
-                          </View>
-                        )}
-                        <View style={styles.tagsContainer}>
-                          {(isEditing
-                            ? editTags
-                            : selectedItem?.tags || []
-                          ).map((tag) => (
-                            <Pressable
-                              key={tag}
-                              style={styles.tagPill}
-                              onPress={() => isEditing && removeTag(tag)}
-                            >
-                              <Hash size={12} color={theme.colors.textMuted} />
-                              <Text style={styles.tagText}>{tag}</Text>
-                              {isEditing && (
-                                <View style={styles.removeTagIcon}>
-                                  <X size={10} color="rgba(255,255,255,0.4)" />
-                                </View>
-                              )}
-                            </Pressable>
-                          ))}
+                          )}
                         </View>
-                      </View>
-                    )}
+                      ) : (
+                        <View style={styles.viewSection}>
+                          <Text style={styles.modalTitle}>
+                            {selectedItem?.title}
+                          </Text>
+                          <Text style={styles.modalTime}>
+                            {selectedItem?.time}
+                          </Text>
+
+                          <View style={styles.modalDivider} />
+
+                          <Text style={styles.transcriptionLabel}>
+                            TRANSCRIPTION
+                          </Text>
+                          <Text style={styles.transcriptionText}>
+                            {selectedItem?.transcription || selectedItem?.desc}
+                          </Text>
+                        </View>
+                      )}
+
+                      {(isEditing
+                        ? editTags.length > 0 ||
+                          (editType.toLowerCase() === "task" && editDue)
+                        : selectedItem?.tags?.length || selectedItem?.due) && (
+                        <View style={styles.modalMetadata}>
+                          {(isEditing
+                            ? editType.toLowerCase() === "task" && editDue
+                            : selectedItem?.due) && (
+                            <View style={styles.metaRow}>
+                              <Calendar
+                                size={14}
+                                color={theme.colors.textMuted}
+                              />
+                              <Text style={styles.metaText}>
+                                Due: {isEditing ? editDue : selectedItem?.due}
+                              </Text>
+                            </View>
+                          )}
+                          <View style={styles.tagsContainer}>
+                            {(isEditing
+                              ? editTags
+                              : selectedItem?.tags || []
+                            ).map((tag) => (
+                              <Pressable
+                                key={tag}
+                                style={styles.tagPill}
+                                onPress={() => isEditing && removeTag(tag)}
+                              >
+                                <Hash
+                                  size={12}
+                                  color={theme.colors.textMuted}
+                                />
+                                <Text style={styles.tagText}>{tag}</Text>
+                                {isEditing && (
+                                  <View style={styles.removeTagIcon}>
+                                    <X
+                                      size={10}
+                                      color="rgba(255,255,255,0.4)"
+                                    />
+                                  </View>
+                                )}
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </Pressable>
                   </ScrollView>
                 </GlassCard>
               </KeyboardAvoidingView>
