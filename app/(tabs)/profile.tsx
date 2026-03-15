@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
   Coffee,
   Globe,
@@ -9,16 +10,8 @@ import {
   User,
 } from "lucide-react-native";
 import React, { useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Alert,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 
 import { CustomSwitch } from "../../components/ui/CustomSwitch";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
@@ -37,15 +30,15 @@ export default function ProfileScreen() {
       "Are you sure you want to sign out of your account?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Sign Out", 
+        {
+          text: "Sign Out",
           style: "destructive",
           onPress: () => {
             // Redirect to auth screen
             router.replace("/(auth)");
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 

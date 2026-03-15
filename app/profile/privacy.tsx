@@ -1,40 +1,51 @@
+import { BlurView } from "expo-blur";
+import { useRouter } from "expo-router";
+import {
+  AlertTriangle,
+  CheckSquare,
+  ChevronLeft,
+  Database,
+  Eye,
+  Lock,
+  Shield,
+  Square,
+  X,
+} from "lucide-react-native";
 import React, { useState } from "react";
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  TouchableOpacity, 
-  Alert, 
-  Modal, 
-  TextInput,
+import {
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
-  Pressable
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Lock, Shield, Eye, Database, X, AlertTriangle, CheckSquare, Square } from "lucide-react-native";
-import { useRouter } from "expo-router";
-import { BlurView } from "expo-blur";
 
-import { theme } from "../../constants/theme";
-import { OrbBackground } from "../../components/ui/OrbBackground";
-import { GlassCard } from "../../components/ui/GlassCard";
-import { SettingsRow } from "../../components/ui/SettingsRow";
-import { NoiseTexture } from "../../components/ui/NoiseTexture";
-import { SectionLabel } from "../../components/ui/SectionLabel";
 import { CustomSwitch } from "../../components/ui/CustomSwitch";
+import { GlassCard } from "../../components/ui/GlassCard";
+import { NoiseTexture } from "../../components/ui/NoiseTexture";
+import { OrbBackground } from "../../components/ui/OrbBackground";
+import { SectionLabel } from "../../components/ui/SectionLabel";
+import { SettingsRow } from "../../components/ui/SettingsRow";
+import { theme } from "../../constants/theme";
 
 export default function PrivacyScreen() {
   const router = useRouter();
   const [twoFactor, setTwoFactor] = useState(false);
-  
+
   // Delete Account Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmCheckbox, setConfirmCheckbox] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
-  const isDeleteEnabled = confirmCheckbox && confirmText.toLowerCase() === "cancel my account";
+  const isDeleteEnabled =
+    confirmCheckbox && confirmText.toLowerCase() === "cancel my account";
 
   const handleExportData = () => {
     Alert.alert(
@@ -42,20 +53,35 @@ export default function PrivacyScreen() {
       "We will generate a ZIP file containing all your recordings, transcriptions, and personal data. This might take a few minutes. Send to your email?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Export", onPress: () => Alert.alert("Success", "Request received! You will receive an email shortly.") }
-      ]
+        {
+          text: "Export",
+          onPress: () =>
+            Alert.alert(
+              "Success",
+              "Request received! You will receive an email shortly.",
+            ),
+        },
+      ],
     );
   };
 
   const handleDeleteAccount = () => {
     if (confirmText.toLowerCase() === "cancel my account" && confirmCheckbox) {
-      Alert.alert("Warning", "Final confirmation: This will permanently delete everything. Continue?", [
-        { text: "No", style: "cancel" },
-        { text: "Yes, Delete Everything", style: "destructive", onPress: () => {
-          setShowDeleteModal(false);
-          // Actual delete logic would go here
-        }}
-      ]);
+      Alert.alert(
+        "Warning",
+        "Final confirmation: This will permanently delete everything. Continue?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes, Delete Everything",
+            style: "destructive",
+            onPress: () => {
+              setShowDeleteModal(false);
+              // Actual delete logic would go here
+            },
+          },
+        ],
+      );
     } else if (!confirmCheckbox) {
       Alert.alert("Error", "Please check the confirmation box.");
     } else {
@@ -67,16 +93,22 @@ export default function PrivacyScreen() {
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
       <NoiseTexture />
-      
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ChevronLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy & Security</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <SectionLabel label="SECURITY" />
         <View style={styles.glassContainer}>
           <SettingsRow
@@ -115,7 +147,7 @@ export default function PrivacyScreen() {
           />
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => setShowDeleteModal(true)}
         >
@@ -131,10 +163,17 @@ export default function PrivacyScreen() {
         onRequestClose={() => setShowDeleteModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowDeleteModal(false)} />
-          
-          <KeyboardAvoidingView 
+          <BlurView
+            intensity={20}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowDeleteModal(false)}
+          />
+
+          <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.modalWrapper}
           >
@@ -150,11 +189,12 @@ export default function PrivacyScreen() {
 
               <Text style={styles.modalTitle}>Delete Account?</Text>
               <Text style={styles.modalDesc}>
-                This action is irreversible. All your ideas, voice recordings, and AI insights will be lost forever.
+                This action is irreversible. All your ideas, voice recordings,
+                and AI insights will be lost forever.
               </Text>
 
-              <TouchableOpacity 
-                style={styles.checkboxRow} 
+              <TouchableOpacity
+                style={styles.checkboxRow}
                 onPress={() => setConfirmCheckbox(!confirmCheckbox)}
                 activeOpacity={0.8}
               >
@@ -163,12 +203,18 @@ export default function PrivacyScreen() {
                 ) : (
                   <Square color="rgba(255,255,255,0.2)" size={20} />
                 )}
-                <Text style={styles.checkboxLabel}>I understand that my data cannot be recovered.</Text>
+                <Text style={styles.checkboxLabel}>
+                  I understand that my data cannot be recovered.
+                </Text>
               </TouchableOpacity>
 
               <View style={styles.confirmInputContainer}>
                 <Text style={styles.inputHint}>
-                  Type <Text style={{ color: "#ffffff", fontWeight: "700" }}>cancel my account</Text> to confirm:
+                  Type{" "}
+                  <Text style={{ color: "#ffffff", fontWeight: "700" }}>
+                    cancel my account
+                  </Text>{" "}
+                  to confirm:
                 </Text>
                 <TextInput
                   style={styles.confirmInput}
@@ -180,15 +226,20 @@ export default function PrivacyScreen() {
                 />
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.confirmDeleteBtn,
-                  isDeleteEnabled ? styles.btnEnabled : styles.btnDisabled
+                  isDeleteEnabled ? styles.btnEnabled : styles.btnDisabled,
                 ]}
                 onPress={handleDeleteAccount}
                 disabled={!isDeleteEnabled}
               >
-                <Text style={[styles.confirmDeleteBtnText, !isDeleteEnabled && { color: "rgba(255,255,255,0.3)" }]}>
+                <Text
+                  style={[
+                    styles.confirmDeleteBtnText,
+                    !isDeleteEnabled && { color: "rgba(255,255,255,0.3)" },
+                  ]}
+                >
                   Permanently Delete Account
                 </Text>
               </TouchableOpacity>

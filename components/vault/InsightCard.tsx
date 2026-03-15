@@ -24,7 +24,7 @@ export function InsightCard({ item, index, onPress }: InsightCardProps) {
       <TouchableOpacity activeOpacity={0.8} onPress={handlePress}>
         <GlassCard style={styles.card}>
           <View style={styles.header}>
-            <Tag type={item.type} />
+            <Tag type={item.type} color={item.typeColor} />
             <Text style={styles.time}>{item.time}</Text>
           </View>
 

@@ -1,48 +1,63 @@
-import { Search, X, Calendar, Hash, Edit2, Check } from "lucide-react-native";
-import React, { useState, useEffect } from "react";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { Calendar, Check, Edit2, Hash, Search, X } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Modal,
-  Pressable,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  runOnJS,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
 
+import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
-import { InsightCard } from "../../components/vault/InsightCard";
-import { GlassCard } from "../../components/ui/GlassCard";
 import { Tag } from "../../components/ui/Tag";
+import { InsightCard } from "../../components/vault/InsightCard";
 import { theme } from "../../constants/theme";
 import { useInsyStore, VaultItem } from "../../store/useInsyStore";
 
 const FILTERS = ["all", "idea", "task", "insight"] as const;
 
 export default function VaultScreen() {
-  const { vaultItems, selectedFilter, setFilter, updateVaultItem } = useInsyStore();
+  const { vaultItems, selectedFilter, setFilter, updateVaultItem } =
+    useInsyStore();
   const [isFocused, setIsFocused] = useState(false);
   const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
-  
+
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editTranscription, setEditTranscription] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editTypeColor, setEditTypeColor] = useState<string | undefined>(undefined);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [isAddingNewType, setIsAddingNewType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+
+  const DEFAULT_CATEGORIES = [
+    { label: "Idea", color: "#FFCC00" },
+    { label: "Task", color: "#3296FF" },
+    { label: "Insight", color: "#34C759" },
+    { label: "Important", color: "#FF4444" },
+    { label: "Personal", color: "#AF52DE" },
+  ];
 
   // Gesture state
   const translateY = useSharedValue(0);
@@ -51,9 +66,15 @@ export default function VaultScreen() {
     if (selectedItem) {
       setEditTitle(selectedItem.title);
       setEditTranscription(selectedItem.transcription || selectedItem.desc);
+      setEditType(selectedItem.type);
+      setEditTypeColor(selectedItem.typeColor);
+      setEditTags(selectedItem.tags || []);
       translateY.value = 0; // Reset position
     } else {
       setIsEditing(false);
+      setShowTypeSelector(false);
+      setIsAddingNewType(false);
+      setNewTypeName("");
     }
   }, [selectedItem]);
 
@@ -62,14 +83,42 @@ export default function VaultScreen() {
       updateVaultItem(selectedItem.id, {
         title: editTitle,
         transcription: editTranscription,
-        desc: editTranscription.length > 50 ? editTranscription.substring(0, 47) + "..." : editTranscription
+        type: editType,
+        typeColor: editTypeColor,
+        tags: editTags,
+        desc:
+          editTranscription.length > 50
+            ? editTranscription.substring(0, 47) + "..."
+            : editTranscription,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsEditing(false);
       setSelectedItem({
         ...selectedItem,
         title: editTitle,
-        transcription: editTranscription
+        transcription: editTranscription,
+        type: editType,
+        typeColor: editTypeColor,
+        tags: editTags,
+      });
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setEditTags(editTags.filter((t) => t !== tagToRemove));
+    Haptics.selectionAsync();
+  };
+
+  const handleTranscriptionChange = (text: string) => {
+    setEditTranscription(text);
+    // Detect hashtags
+    const hashMatches = text.match(/#(\w+)/g);
+    if (hashMatches) {
+      const newTags = hashMatches.map((m) => m.substring(1));
+      // Add unique new tags to the list
+      setEditTags((prev) => {
+        const combined = [...prev, ...newTags];
+        return Array.from(new Set(combined));
       });
     }
   };
@@ -175,9 +224,9 @@ export default function VaultScreen() {
           data={filteredItems}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index }) => (
-            <InsightCard 
-              item={item} 
-              index={index} 
+            <InsightCard
+              item={item}
+              index={index}
               onPress={() => setSelectedItem(item)}
             />
           )}
@@ -194,15 +243,19 @@ export default function VaultScreen() {
         onRequestClose={() => setSelectedItem(null)}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-          <Pressable 
-            style={StyleSheet.absoluteFill} 
-            onPress={() => setSelectedItem(null)} 
+          <BlurView
+            intensity={20}
+            tint="dark"
+            style={StyleSheet.absoluteFill}
           />
-          
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSelectedItem(null)}
+          />
+
           <GestureDetector gesture={gesture}>
             <Animated.View style={[styles.modalContainer, animatedStyle]}>
-              <KeyboardAvoidingView 
+              <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.modalContent}
               >
@@ -214,23 +267,111 @@ export default function VaultScreen() {
 
                   <View style={styles.modalHeader}>
                     <View style={styles.headerLeft}>
-                      <Tag type={selectedItem?.type || "idea"} />
+                      {isEditing ? (
+                        <View>
+                          <Pressable
+                            onPress={() => {
+                              setShowTypeSelector(!showTypeSelector);
+                              Haptics.selectionAsync();
+                            }}
+                          >
+                            <Tag type={editType} color={editTypeColor} />
+                          </Pressable>
+
+                          {showTypeSelector && (
+                            <GlassCard style={styles.typeSelector} intensity={60}>
+                              <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.typeSelectorScroll}
+                              >
+                                {DEFAULT_CATEGORIES.map((cat) => (
+                                  <Pressable
+                                    key={cat.label}
+                                    onPress={() => {
+                                      setEditType(cat.label);
+                                      setEditTypeColor(cat.color);
+                                      setShowTypeSelector(false);
+                                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    }}
+                                    style={styles.typeOption}
+                                  >
+                                    <Tag type={cat.label} color={cat.color} />
+                                  </Pressable>
+                                ))}
+                                {isAddingNewType ? (
+                                  <View style={styles.addingTypeContainer}>
+                                    <TextInput
+                                      style={styles.newTypeInput}
+                                      value={newTypeName}
+                                      onChangeText={setNewTypeName}
+                                      placeholder="Name..."
+                                      placeholderTextColor="rgba(255,255,255,0.3)"
+                                      autoFocus
+                                      onSubmitEditing={() => {
+                                        if (newTypeName) {
+                                          setEditType(newTypeName);
+                                          setEditTypeColor("#999999");
+                                          setIsAddingNewType(false);
+                                          setNewTypeName("");
+                                          setShowTypeSelector(false);
+                                        }
+                                      }}
+                                    />
+                                    <Pressable 
+                                      onPress={() => setIsAddingNewType(false)}
+                                      style={styles.cancelTypeBtn}
+                                    >
+                                      <X size={12} color="#ff4444" />
+                                    </Pressable>
+                                  </View>
+                                ) : (
+                                  <Pressable
+                                    onPress={() => {
+                                      setIsAddingNewType(true);
+                                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    }}
+                                    style={styles.typeOption}
+                                  >
+                                    <View style={styles.addTypeButton}>
+                                      <Text style={styles.addTypeText}>+ NEW</Text>
+                                    </View>
+                                  </Pressable>
+                                )}
+                              </ScrollView>
+                            </GlassCard>
+                          )}
+                        </View>
+                      ) : (
+                        <Tag
+                          type={selectedItem?.type || "idea"}
+                          color={selectedItem?.typeColor}
+                        />
+                      )}
                     </View>
-                    
+
                     <View style={styles.headerRight}>
                       {isEditing ? (
                         <>
-                          <Pressable 
+                          <Pressable
                             onPress={() => {
                               setIsEditing(false);
                               setEditTitle(selectedItem?.title || "");
-                              setEditTranscription(selectedItem?.transcription || selectedItem?.desc || "");
+                              setEditTranscription(
+                                selectedItem?.transcription ||
+                                  selectedItem?.desc ||
+                                  "",
+                              );
+                              setEditType(selectedItem?.type || "");
+                              setEditTypeColor(selectedItem?.typeColor);
+                              setEditTags(selectedItem?.tags || []);
+                              setShowTypeSelector(false);
                             }}
                             style={[styles.actionButton, styles.cancelButton]}
                           >
                             <X color="#ff4444" size={18} />
                           </Pressable>
-                          <Pressable 
+                          <Pressable
                             onPress={handleSave}
                             style={[styles.actionButton, styles.saveButton]}
                           >
@@ -238,7 +379,7 @@ export default function VaultScreen() {
                           </Pressable>
                         </>
                       ) : (
-                        <Pressable 
+                        <Pressable
                           onPress={() => {
                             setIsEditing(true);
                             Haptics.selectionAsync();
@@ -249,7 +390,7 @@ export default function VaultScreen() {
                         </Pressable>
                       )}
                       <View style={styles.headerDivider} />
-                      <Pressable 
+                      <Pressable
                         onPress={() => setSelectedItem(null)}
                         style={styles.closeButton}
                       >
@@ -258,7 +399,7 @@ export default function VaultScreen() {
                     </View>
                   </View>
 
-                  <ScrollView 
+                  <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                   >
@@ -272,13 +413,17 @@ export default function VaultScreen() {
                           placeholderTextColor="rgba(255,255,255,0.2)"
                           multiline
                         />
-                        <Text style={styles.modalTime}>{selectedItem?.time}</Text>
+                        <Text style={styles.modalTime}>
+                          {selectedItem?.time}
+                        </Text>
                         <View style={styles.modalDivider} />
-                        <Text style={styles.transcriptionLabel}>EDITING TRANSCRIPTION</Text>
+                        <Text style={styles.transcriptionLabel}>
+                          EDITING TRANSCRIPTION
+                        </Text>
                         <TextInput
                           style={styles.editTranscriptionInput}
                           value={editTranscription}
-                          onChangeText={setEditTranscription}
+                          onChangeText={handleTranscriptionChange}
                           placeholder="Transcription"
                           placeholderTextColor="rgba(255,255,255,0.2)"
                           multiline
@@ -286,32 +431,54 @@ export default function VaultScreen() {
                       </View>
                     ) : (
                       <View style={styles.viewSection}>
-                        <Text style={styles.modalTitle}>{selectedItem?.title}</Text>
-                        <Text style={styles.modalTime}>{selectedItem?.time}</Text>
-                        
+                        <Text style={styles.modalTitle}>
+                          {selectedItem?.title}
+                        </Text>
+                        <Text style={styles.modalTime}>
+                          {selectedItem?.time}
+                        </Text>
+
                         <View style={styles.modalDivider} />
-                        
-                        <Text style={styles.transcriptionLabel}>TRANSCRIPTION</Text>
+
+                        <Text style={styles.transcriptionLabel}>
+                          TRANSCRIPTION
+                        </Text>
                         <Text style={styles.transcriptionText}>
                           {selectedItem?.transcription || selectedItem?.desc}
                         </Text>
                       </View>
                     )}
 
-                    {(selectedItem?.tags?.length || selectedItem?.due) && (
+                    {(isEditing ? editTags.length > 0 : (selectedItem?.tags?.length || selectedItem?.due)) && (
                       <View style={styles.modalMetadata}>
-                        {selectedItem.due && (
+                        {selectedItem?.due && (
                           <View style={styles.metaRow}>
-                            <Calendar size={14} color={theme.colors.textMuted} />
-                            <Text style={styles.metaText}>Due: {selectedItem.due}</Text>
+                            <Calendar
+                              size={14}
+                              color={theme.colors.textMuted}
+                            />
+                            <Text style={styles.metaText}>
+                              Due: {selectedItem.due}
+                            </Text>
                           </View>
                         )}
-                        {selectedItem.tags?.map(tag => (
-                          <View key={tag} style={styles.metaRow}>
-                            <Hash size={14} color={theme.colors.textMuted} />
-                            <Text style={styles.metaText}>{tag}</Text>
-                          </View>
-                        ))}
+                        <View style={styles.tagsContainer}>
+                          {(isEditing ? editTags : (selectedItem?.tags || [])).map((tag) => (
+                            <Pressable 
+                              key={tag} 
+                              style={styles.tagPill}
+                              onPress={() => isEditing && removeTag(tag)}
+                            >
+                              <Hash size={12} color={theme.colors.textMuted} />
+                              <Text style={styles.tagText}>{tag}</Text>
+                              {isEditing && (
+                                <View style={styles.removeTagIcon}>
+                                  <X size={10} color="rgba(255,255,255,0.4)" />
+                                </View>
+                              )}
+                            </Pressable>
+                          ))}
+                        </View>
                       </View>
                     )}
                   </ScrollView>
@@ -566,5 +733,86 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: 12,
     fontFamily: "Inter_500Medium",
+  },
+  // New Styles
+  typeSelector: {
+    position: "absolute",
+    top: 36,
+    left: 0,
+    zIndex: 100,
+    padding: 12,
+    width: 280,
+  },
+  typeSelectorScroll: {
+    gap: 8,
+    paddingRight: 10,
+  },
+  typeOption: {
+    marginRight: 4,
+  },
+  addTypeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    height: 24,
+  },
+  addTypeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  tagPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  tagText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+  },
+  removeTagIcon: {
+    marginLeft: 2,
+    padding: 2,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 4,
+  },
+  addingTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    height: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  newTypeInput: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "700",
+    width: 60,
+    padding: 0,
+  },
+  cancelTypeBtn: {
+    marginLeft: 4,
   },
 });

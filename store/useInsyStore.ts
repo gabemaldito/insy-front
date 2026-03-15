@@ -11,7 +11,8 @@ export interface Capture {
 
 export interface VaultItem {
   id: number;
-  type: "idea" | "task" | "insight";
+  type: string;
+  typeColor?: string;
   title: string;
   desc: string;
   transcription?: string;
@@ -37,7 +38,8 @@ const mockVaultItems: VaultItem[] = [
     type: "idea",
     title: "Insy Monetization",
     desc: "Remove login friction. Use Apple Pay.",
-    transcription: "I was thinking about how to monetize the app. We should really focus on removing any friction from the login and payment flow. Using Apple Pay would be a game changer for ADHD users who might lose focus if they have to type in credit card details.",
+    transcription:
+      "I was thinking about how to monetize the app. We should really focus on removing any friction from the login and payment flow. Using Apple Pay would be a game changer for ADHD users who might lose focus if they have to type in credit card details.",
     time: "2h ago",
     tags: ["revenue", "ux"],
   },
@@ -46,7 +48,8 @@ const mockVaultItems: VaultItem[] = [
     type: "task",
     title: "Buy groceries",
     desc: "Milk, eggs, bread before Tuesday.",
-    transcription: "I need to go to the store and get some milk, eggs, and bread. I should do this before Tuesday because that's when I have that big meeting and I won't have time afterwards.",
+    transcription:
+      "I need to go to the store and get some milk, eggs, and bread. I should do this before Tuesday because that's when I have that big meeting and I won't have time afterwards.",
     time: "Yesterday",
     due: "Tuesday",
   },
@@ -55,7 +58,8 @@ const mockVaultItems: VaultItem[] = [
     type: "insight",
     title: "Focus routine idea",
     desc: "Body doubling Tuesday mornings.",
-    transcription: "I noticed that I'm much more productive when someone else is around, even if we aren't working on the same thing. Maybe I should try body doubling on Tuesday mornings with some friends from the co-working space.",
+    transcription:
+      "I noticed that I'm much more productive when someone else is around, even if we aren't working on the same thing. Maybe I should try body doubling on Tuesday mornings with some friends from the co-working space.",
     time: "3d ago",
     tags: [],
   },
@@ -89,7 +93,7 @@ export const useInsyStore = create<InsyStore>((set) => ({
   updateVaultItem: (id, updates) =>
     set((state) => ({
       vaultItems: state.vaultItems.map((item) =>
-        item.id === id ? { ...item, ...updates } : item
+        item.id === id ? { ...item, ...updates } : item,
       ),
     })),
 }));

@@ -1,15 +1,20 @@
-import React from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, User, Mail, Calendar } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { BlurView } from "expo-blur";
+import { Calendar, ChevronLeft, Mail, User } from "lucide-react-native";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { theme } from "../../constants/theme";
-import { OrbBackground } from "../../components/ui/OrbBackground";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
+import { OrbBackground } from "../../components/ui/OrbBackground";
 import { SectionLabel } from "../../components/ui/SectionLabel";
+import { theme } from "../../constants/theme";
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
@@ -18,18 +23,24 @@ export default function PersonalInfoScreen() {
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
       <NoiseTexture />
-      
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ChevronLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Personal Info</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <SectionLabel label="IDENTIFICATION" style={styles.sectionLabel} />
-        
+
         <GlassCard style={styles.card}>
           <View style={styles.infoRow}>
             <View style={styles.iconContainer}>
@@ -67,7 +78,8 @@ export default function PersonalInfoScreen() {
         </GlassCard>
 
         <Text style={styles.infoFooter}>
-          This information is synced with your Supabase account and is used to personalize your experience.
+          This information is synced with your Supabase account and is used to
+          personalize your experience.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -151,5 +163,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 20,
     fontFamily: "Inter_400Regular",
-  }
+  },
 });

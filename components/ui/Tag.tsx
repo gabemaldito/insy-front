@@ -3,13 +3,17 @@ import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../constants/theme";
 
 interface TagProps {
-  type: "idea" | "task" | "insight";
+  type: string;
   label?: string;
+  color?: string;
 }
 
-export function Tag({ type, label }: TagProps) {
+export function Tag({ type, label, color }: TagProps) {
   const getStyles = () => {
-    switch (type) {
+    if (color) {
+      return { bg: `${color}26`, text: color }; // 26 is ~15% opacity in hex
+    }
+    switch (type.toLowerCase()) {
       case "idea":
         return { bg: "rgba(255, 204, 0, 0.15)", text: "#FFCC00" };
       case "task":
@@ -17,7 +21,7 @@ export function Tag({ type, label }: TagProps) {
       case "insight":
         return { bg: "rgba(52, 199, 89, 0.15)", text: "#34C759" };
       default:
-        return { bg: theme.colors.surface, text: theme.colors.textSecondary };
+        return { bg: "rgba(255, 255, 255, 0.1)", text: "#999999" };
     }
   };
 

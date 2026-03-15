@@ -1,25 +1,21 @@
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import { Mic } from "lucide-react-native";
-import React, { useRef, useMemo } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  Dimensions,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useRef } from "react";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useFrameCallback,
   useAnimatedProps,
-  withSpring,
-  withRepeat,
-  withTiming,
-  Easing,
+  useFrameCallback,
+  useSharedValue,
 } from "react-native-reanimated";
-import Svg, { Path, Defs, RadialGradient, Stop, Circle } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  RadialGradient,
+  Stop,
+} from "react-native-svg";
 
 import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
@@ -81,11 +77,11 @@ export default function DashboardScreen() {
         Math.sin(angle * 2 + t * 2) * waveAmp * 0.4 +
         Math.sin(angle * 3 - t * 2.5) * waveAmp * 0.3 +
         Math.sin(angle * 4 + t * 1.8) * waveAmp * 0.2;
-      
+
       const r = BASE_R + noise;
       const x = CX + Math.cos(angle) * r;
       const y = CY + Math.sin(angle) * r;
-      
+
       if (i === 0) d += `M ${x.toFixed(2)},${y.toFixed(2)}`;
       else d += ` L ${x.toFixed(2)},${y.toFixed(2)}`;
     }
@@ -177,12 +173,24 @@ export default function DashboardScreen() {
           <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.svg}>
             <Defs>
               <RadialGradient id="blobGrad" cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity="1" />
+                <Stop
+                  offset="0%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity="1"
+                />
                 <Stop offset="100%" stopColor="#c0150a" stopOpacity="1" />
               </RadialGradient>
               <RadialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor={theme.colors.primary} stopOpacity="0.4" />
-                <Stop offset="100%" stopColor={theme.colors.primary} stopOpacity="0" />
+                <Stop
+                  offset="0%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity="0.4"
+                />
+                <Stop
+                  offset="100%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity="0"
+                />
               </RadialGradient>
             </Defs>
 
@@ -229,7 +237,12 @@ export default function DashboardScreen() {
           </View>
         </Pressable>
 
-        <Text style={[styles.statusText, isRecording && { color: theme.colors.primary }]}>
+        <Text
+          style={[
+            styles.statusText,
+            isRecording && { color: theme.colors.primary },
+          ]}
+        >
           {isRecording ? "LISTENING..." : "HOLD TO RECORD"}
         </Text>
       </View>
