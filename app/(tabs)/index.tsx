@@ -1,9 +1,19 @@
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { Mic } from "lucide-react-native";
 import React, { useRef } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
+  FadeIn,
+  FadeOut,
   useAnimatedProps,
   useFrameCallback,
   useSharedValue,
@@ -37,6 +47,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 export default function DashboardScreen() {
   const { isRecording, setRecording, captures } = useInsyStore();
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const pressStartAt = useRef<number>(0);
 
   // Reanimated shared values
@@ -64,6 +75,68 @@ export default function DashboardScreen() {
       amp.value += (0 - amp.value) * dt * 5;
     }
   });
+
+  const [currentTypingText, setCurrentTypingText] = React.useState("");
+  const [activeSentenceKey, setActiveSentenceKey] = React.useState(0);
+
+  const sentences = [
+    "Thinking about monetization strategy",
+    "Brainstorming UX improvements",
+    "Reducing login friction",
+    "Using Apple Pay for ADHD focus",
+    "Restructuring the Vault screen",
+    "Adding glassmorphism effects",
+    "Optimizing recording animations",
+    "Finalizing the Apple Store prep",
+  ];
+
+  React.useEffect(() => {
+    let timeoutId: any;
+    
+    if (isRecording) {
+      let sentenceIdx = 0;
+      
+      const runTypingLoop = (words: string[], wordIdx: number) => {
+        if (!isRecording) return;
+        
+        if (wordIdx < words.length) {
+          // Sliding window: mostra no máximo as últimas 5 palavras
+          const visible = words.slice(0, wordIdx + 1).slice(-5);
+          setCurrentTypingText(visible.join(" "));
+          
+          timeoutId = setTimeout(() => {
+            runTypingLoop(words, wordIdx + 1);
+          }, 550); // Ritmo mais calmo e elegante
+        } else {
+          // Fim da frase: pausa para leitura completa
+          timeoutId = setTimeout(() => {
+            if (!isRecording) return;
+            
+            // Limpa para respirar antes da próxima ideia
+            setCurrentTypingText("");
+            
+            timeoutId = setTimeout(() => {
+              if (!isRecording) return;
+              
+              sentenceIdx = (sentenceIdx + 1) % sentences.length;
+              setActiveSentenceKey(k => k + 1); // Dispara o FadeIn da próxima frase
+              const nextWords = sentences[sentenceIdx].split(" ");
+              runTypingLoop(nextWords, 0);
+            }, 800);
+          }, 2500); 
+        }
+      };
+
+      const initialWords = sentences[0].split(" ");
+      runTypingLoop(initialWords, 0);
+    } else {
+      setCurrentTypingText("");
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isRecording]);
 
   // SVG Animated Props
   const blobProps = useAnimatedProps(() => {
@@ -237,10 +310,25 @@ export default function DashboardScreen() {
           </View>
         </Pressable>
 
+        {isRecording && currentTypingText !== "" && (
+          <GlassCard style={styles.geminiCard} intensity={25}>
+            <Animated.Text 
+              key={activeSentenceKey}
+              entering={FadeIn.duration(800)}
+              exiting={FadeOut.duration(400)}
+              style={styles.geminiTextMain}
+              numberOfLines={1}
+              ellipsizeMode="clip"
+            >
+              {currentTypingText}
+            </Animated.Text>
+          </GlassCard>
+        )}
+
         <Text
           style={[
             styles.statusText,
-            isRecording && { color: theme.colors.primary },
+            isRecording && { color: theme.colors.primary, marginTop: 10 },
           ]}
         >
           {isRecording ? "LISTENING..." : "HOLD TO RECORD"}
@@ -359,5 +447,23 @@ const styles = StyleSheet.create({
   captureTime: {
     color: theme.colors.textMuted,
     fontSize: 10,
+  },
+  geminiCard: {
+    width: width * 0.85,
+    height: 56,
+    borderRadius: 28,
+    marginTop: 20,
+    paddingHorizontal: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  geminiTextMain: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
   },
 });

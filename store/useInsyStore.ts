@@ -26,10 +26,13 @@ interface InsyStore {
   captures: Capture[];
   vaultItems: VaultItem[];
   selectedFilter: "all" | "idea" | "task" | "insight";
+  isLoading: boolean;
+  profile: any | null;
   setRecording: (v: boolean) => void;
   setFilter: (f: "all" | "idea" | "task" | "insight") => void;
   addCapture: (c: Capture) => void;
   updateVaultItem: (id: number, updates: Partial<VaultItem>) => void;
+  initialize: () => Promise<void>;
 }
 
 const mockVaultItems: VaultItem[] = [
@@ -82,8 +85,10 @@ const mockCaptures: Capture[] = [
   },
 ];
 
-export const useInsyStore = create<InsyStore>((set) => ({
+export const useInsyStore = create<InsyStore>((set, get) => ({
   isRecording: false,
+  isLoading: false,
+  profile: null,
   captures: mockCaptures,
   vaultItems: mockVaultItems,
   selectedFilter: "all",
@@ -96,4 +101,16 @@ export const useInsyStore = create<InsyStore>((set) => ({
         item.id === id ? { ...item, ...updates } : item,
       ),
     })),
+  initialize: async () => {
+    set({ isLoading: true });
+    try {
+      // Aqui entrará a lógica de fetch do Supabase futuramente
+      // const { data } = await supabase.from('captures').select('*');
+      console.log("Store initialized");
+    } catch (err) {
+      console.error("Failed to sync store:", err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 }));
