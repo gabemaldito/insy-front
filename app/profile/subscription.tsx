@@ -8,6 +8,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../constants/theme";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { GlassCard } from "../../components/ui/GlassCard";
+import { NoiseTexture } from "../../components/ui/NoiseTexture";
+import { SectionLabel } from "../../components/ui/SectionLabel";
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -15,6 +17,7 @@ export default function SubscriptionScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
+      <NoiseTexture />
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -46,8 +49,8 @@ export default function SubscriptionScreen() {
             </View>
           </View>
         </LinearGradient>
-
-        <Text style={styles.sectionTitle}>DETAILS</Text>
+        
+        <SectionLabel label="DETAILS" style={styles.sectionLabel} />
         
         <GlassCard style={styles.card}>
           <View style={styles.infoRow}>
@@ -55,8 +58,8 @@ export default function SubscriptionScreen() {
               <CreditCard color={theme.colors.primary} size={20} />
             </View>
             <View style={styles.infoText}>
-              <Text style={styles.label}>PAYMENT METHOD</Text>
-              <Text style={styles.value}>Visa ending in 4242</Text>
+              <Text style={styles.label}>Payment Method</Text>
+              <Text style={styles.value}>Apple ID Account</Text>
             </View>
           </View>
 
@@ -67,13 +70,16 @@ export default function SubscriptionScreen() {
               <Clock color={theme.colors.primary} size={20} />
             </View>
             <View style={styles.infoText}>
-              <Text style={styles.label}>BILLING CYCLE</Text>
+              <Text style={styles.label}>Billing Cycle</Text>
               <Text style={styles.value}>Monthly</Text>
             </View>
           </View>
         </GlassCard>
 
-        <TouchableOpacity style={styles.manageButton}>
+        <TouchableOpacity 
+          style={styles.manageButton}
+          onPress={() => router.push("/profile/manage")}
+        >
           <Text style={styles.manageButtonText}>Manage Subscription</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -102,19 +108,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#ffffff",
     fontFamily: "Inter_700Bold",
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 24,
   },
   proCard: {
     borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
+    padding: 28,
+    marginBottom: 40,
     shadowColor: "#ff6b35",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -125,10 +131,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 48,
   },
   proTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "800",
     color: "#ffffff",
     fontFamily: "Inter_700Bold",
@@ -137,6 +143,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.8)",
     fontFamily: "Inter_500Medium",
+    marginTop: 4,
   },
   proFooter: {
     flexDirection: "row",
@@ -144,61 +151,56 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   proPrice: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
     color: "#ffffff",
     fontFamily: "Inter_700Bold",
   },
   nextBilling: {},
   nextBillingText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "rgba(255,255,255,0.8)",
     fontFamily: "Inter_400Regular",
   },
-  sectionTitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2,
+  sectionLabel: {
     marginBottom: 16,
-    marginLeft: 4,
   },
   card: {
-    padding: 24,
-    gap: 20,
-    marginBottom: 32,
+    padding: 8,
+    marginBottom: 40,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    paddingVertical: 12,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: "rgba(255,107,53,0.1)",
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 16,
   },
   infoText: {
     flex: 1,
   },
   label: {
-    fontSize: 10,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1,
-    marginBottom: 4,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 2,
   },
   value: {
     fontSize: 16,
     color: "#ffffff",
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    marginLeft: 60,
   },
   manageButton: {
     height: 56,
@@ -208,7 +210,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 60,
   },
   manageButtonText: {
     fontSize: 16,

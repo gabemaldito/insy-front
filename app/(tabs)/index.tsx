@@ -24,6 +24,7 @@ import Svg, { Path, Defs, RadialGradient, Stop, Circle } from "react-native-svg"
 import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
+import { SectionLabel } from "../../components/ui/SectionLabel";
 import { theme } from "../../constants/theme";
 import { useInsyStore } from "../../store/useInsyStore";
 
@@ -234,7 +235,7 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerLabel}>RECENT CAPTURES</Text>
+        <SectionLabel label="RECENT CAPTURES" />
         {captures.slice(0, 2).map((item) => (
           <GlassCard key={item.id} style={styles.captureCard}>
             <View style={styles.captureInfo}>
@@ -322,13 +323,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 24,
     paddingBottom: 100,
-  },
-  footerLabel: {
-    color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginBottom: 12,
   },
   captureCard: {
     flexDirection: "row",

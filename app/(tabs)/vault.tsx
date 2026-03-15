@@ -24,6 +24,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 
+import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { InsightCard } from "../../components/vault/InsightCard";
 import { GlassCard } from "../../components/ui/GlassCard";
@@ -113,6 +114,7 @@ export default function VaultScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
+      <NoiseTexture />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -337,7 +339,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     fontFamily: "Inter_700Bold",
     marginRight: 12,

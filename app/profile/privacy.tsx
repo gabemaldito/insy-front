@@ -8,6 +8,8 @@ import { theme } from "../../constants/theme";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { SettingsRow } from "../../components/ui/SettingsRow";
+import { NoiseTexture } from "../../components/ui/NoiseTexture";
+import { SectionLabel } from "../../components/ui/SectionLabel";
 
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -15,6 +17,7 @@ export default function PrivacyScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
+      <NoiseTexture />
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -25,7 +28,7 @@ export default function PrivacyScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>SECURITY</Text>
+        <SectionLabel label="SECURITY" />
         <View style={styles.glassContainer}>
           <SettingsRow
             icon={<Shield color="rgba(99,160,255,1)" size={16} />}
@@ -42,7 +45,7 @@ export default function PrivacyScreen() {
           />
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 32 }]}>DATA & PRIVACY</Text>
+        <SectionLabel label="DATA & PRIVACY" style={{ marginTop: 32 }} />
         <View style={styles.glassContainer}>
           <SettingsRow
             icon={<Eye color="rgba(99,160,255,1)" size={16} />}
@@ -88,7 +91,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#ffffff",
     fontFamily: "Inter_700Bold",
@@ -96,14 +99,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     paddingTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2,
-    marginBottom: 16,
-    marginLeft: 4,
   },
   glassContainer: {
     backgroundColor: "rgba(255,255,255,0.04)",

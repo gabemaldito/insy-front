@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { theme } from "../../constants/theme";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { GlassCard } from "../../components/ui/GlassCard";
+import { NoiseTexture } from "../../components/ui/NoiseTexture";
 
 const LANGUAGES = [
   { id: "en", name: "English", flag: "🇺🇸" },
@@ -25,6 +26,7 @@ export default function LanguageScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <OrbBackground opacity={0.3} />
+      <NoiseTexture />
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#ffffff",
     fontFamily: "Inter_700Bold",
