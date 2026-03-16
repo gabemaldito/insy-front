@@ -1,11 +1,12 @@
-import "react-native-url-polyfill/auto";
-import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
 import Constants from "expo-constants";
+import "react-native-url-polyfill/auto";
 
 // Esses valores virão do seu .env
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
+// Esses valores virão do seu .env
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://chgpivwxikovesbrmuzy.supabase.co";
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

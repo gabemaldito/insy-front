@@ -28,11 +28,16 @@ interface InsyStore {
   selectedFilter: "all" | "idea" | "task" | "insight";
   isLoading: boolean;
   profile: any | null;
+  session: any | null;
+  isPro: boolean;
   setRecording: (v: boolean) => void;
   setFilter: (f: "all" | "idea" | "task" | "insight") => void;
   addCapture: (c: Capture) => void;
   updateVaultItem: (id: number, updates: Partial<VaultItem>) => void;
+  setUser: (session: any | null, profile: any | null) => void;
   initialize: () => Promise<void>;
+  fetchProfile: (uid: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const mockVaultItems: VaultItem[] = [
@@ -89,6 +94,8 @@ export const useInsyStore = create<InsyStore>((set, get) => ({
   isRecording: false,
   isLoading: false,
   profile: null,
+  session: null,
+  isPro: false,
   captures: mockCaptures,
   vaultItems: mockVaultItems,
   selectedFilter: "all",
@@ -101,16 +108,66 @@ export const useInsyStore = create<InsyStore>((set, get) => ({
         item.id === id ? { ...item, ...updates } : item,
       ),
     })),
+  setUser: (session, profile) => {
+    set({ session, profile });
+    if (profile?.id) {
+      get().fetchProfile(profile.id);
+    }
+  },
+  fetchProfile: async (uid: string) => {
+    const { supabase } = await import("../utils/supabase");
+    try {
+      let { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .single();
+      
+      // Se a linha não existe, vamos criar agora (Backfill automático)
+      if (!data && !error) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData.session?.user;
+        
+        if (user) {
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .upsert({
+              id: uid,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || "Guest User",
+              is_pro: false
+            })
+            .select()
+            .single();
+          
+          data = newProfile;
+        }
+      }
+
+      if (data) {
+        set((state) => ({ 
+          isPro: data.is_pro || false,
+          profile: { ...state.profile, ...data }
+        }));
+      }
+    } catch (err) {
+      console.log("Profile sync failed, likely RLS or table missing.");
+    }
+  },
   initialize: async () => {
     set({ isLoading: true });
     try {
-      // Aqui entrará a lógica de fetch do Supabase futuramente
-      // const { data } = await supabase.from('captures').select('*');
-      console.log("Store initialized");
+      // Sincronização básica inicial será feita no _layout
+      console.log("Store metadata initialized");
     } catch (err) {
       console.error("Failed to sync store:", err);
     } finally {
       set({ isLoading: false });
     }
+  },
+  signOut: async () => {
+    const { supabase } = await import("../utils/supabase");
+    await supabase.auth.signOut();
+    set({ session: null, profile: null, captures: [], vaultItems: [] });
   },
 }));

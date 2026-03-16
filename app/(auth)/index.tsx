@@ -1,27 +1,83 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Apple, Chrome, Mic } from "lucide-react-native";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Chrome, Mic } from "lucide-react-native";
+import React, { useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { GlassButton } from "../../components/ui/GlassButton";
-import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { theme } from "../../constants/theme";
+import { supabase } from "../../utils/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAppleAuth = () => {
-    // TODO: implementar OAuth antes de navegar
-    router.replace("/(tabs)");
-  };
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
+    try {
+      // Esquema direto do app - mais estável
+      const redirectUrl = "insyfront://login";
+      
+      console.log("-> Google Login via Scheme:", redirectUrl);
 
-  const handleGoogleAuth = () => {
-    // TODO: implementar OAuth antes de navegar
-    router.replace("/(tabs)");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+        if (res.type === "success") {
+          const { url } = res;
+          console.log("-> Login Retornou:", url);
+
+          const parsed = Linking.parse(url);
+          let access_token = parsed.queryParams?.access_token as string;
+          let refresh_token = parsed.queryParams?.refresh_token as string;
+
+          if (!access_token || !refresh_token) {
+            const fragment = url.split("#")[1];
+            if (fragment) {
+              const params = new URLSearchParams(fragment);
+              access_token = params.get("access_token") || "";
+              refresh_token = params.get("refresh_token") || "";
+            }
+          }
+
+          if (access_token && refresh_token) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (sessionError) throw sessionError;
+            console.log("-> Sessão ativada!");
+          } else {
+            throw new Error("Não foi possível encontrar os tokens de acesso na resposta.");
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Google auth error:", error);
+      Alert.alert(
+        "Erro de Autenticação",
+        error.message || "Certifique-se de que o Redirect URL está correto no Supabase."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -50,28 +106,18 @@ export default function OnboardingScreen() {
           </Text>
         </View>
 
-        <GlassCard style={styles.featuresCard}>
-          <FeatureItem text="No typing needed" />
-          <FeatureItem text="AI auto-organizes ideas" />
-          <FeatureItem text="Built for ADHD brains" />
-        </GlassCard>
+        <View style={styles.authContainer}>
+          <GlassButton
+            title={isLoading ? "Connecting..." : "Sign in with Google"}
+            variant="primary"
+            icon={<Chrome color="#ffffff" size={22} />}
+            onPress={handleGoogleAuth}
+            disabled={isLoading}
+            style={styles.mainButton}
+          />
+        </View>
 
         <View style={styles.footer}>
-          <GlassButton
-            title="Continue with Apple"
-            variant="primary"
-            icon={<Apple color="#ffffff" size={20} />}
-            onPress={handleAppleAuth}
-            style={styles.button}
-          />
-          <GlassButton
-            title="Continue with Google"
-            variant="ghost"
-            icon={<Chrome color="#ffffff" size={20} />}
-            onPress={handleGoogleAuth}
-            style={styles.button}
-          />
-
           <Text style={styles.termsText}>
             By continuing, you agree to our Privacy Policy
           </Text>
@@ -164,11 +210,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_500Medium",
   },
+  authContainer: {
+    width: "100%",
+    marginVertical: 20,
+    gap: 12,
+  },
+  inputWrapper: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    height: 58,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+  },
+  input: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+  },
+  mainButton: {
+    height: 58,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  orText: {
+    color: "rgba(255,255,255,0.2)",
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    marginHorizontal: 16,
+    letterSpacing: 2,
+  },
+  socialButton: {
+    height: 58,
+  },
   footer: {
     width: "100%",
-  },
-  button: {
-    marginBottom: 12,
   },
   termsText: {
     color: theme.colors.textMuted,

@@ -11,8 +11,11 @@ import { GlassCard } from "../../components/ui/GlassCard";
 import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 
+import { useInsyStore } from "../../store/useInsyStore";
+
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const isPro = useInsyStore((state) => state.isPro);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -28,27 +31,42 @@ export default function SubscriptionScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <LinearGradient
-          colors={["#ff6b35", "#c0150a"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.proCard}
-        >
-          <View style={styles.proHeader}>
-            <View>
-              <Text style={styles.proTitle}>Pro Plan</Text>
-              <Text style={styles.proStatus}>Active Subscription</Text>
+        {isPro ? (
+          <LinearGradient
+            colors={["#ff6b35", "#c0150a"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.proCard}
+          >
+            <View style={styles.proHeader}>
+              <View>
+                <Text style={styles.proTitle}>Pro Plan</Text>
+                <Text style={styles.proStatus}>Active Subscription</Text>
+              </View>
+              <Star color="#ffffff" size={32} fill="#ffffff" />
             </View>
-            <Star color="#ffffff" size={32} fill="#ffffff" />
-          </View>
-          
-          <View style={styles.proFooter}>
-            <Text style={styles.proPrice}>$9.99/mo</Text>
-            <View style={styles.nextBilling}>
-              <Text style={styles.nextBillingText}>Next billing: Apr 15, 2024</Text>
+            
+            <View style={styles.proFooter}>
+              <Text style={styles.proPrice}>$9.99/mo</Text>
+              <View style={styles.nextBilling}>
+                <Text style={styles.nextBillingText}>Subscribed via App Store</Text>
+              </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        ) : (
+          <GlassCard style={[styles.proCard, { backgroundColor: "rgba(255,255,255,0.03)" }]}>
+            <View style={styles.proHeader}>
+              <View>
+                <Text style={styles.proTitle}>Free Plan</Text>
+                <Text style={styles.proStatus}>Limited features</Text>
+              </View>
+              <Star color="rgba(255,255,255,0.2)" size={32} />
+            </View>
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", marginTop: -20, marginBottom: 20 }}>
+              Upgrade to Pro to unlock unlimited recordings and advanced AI insights.
+            </Text>
+          </GlassCard>
+        )}
         
         <SectionLabel label="DETAILS" style={styles.sectionLabel} />
         

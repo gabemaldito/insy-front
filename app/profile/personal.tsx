@@ -15,9 +15,20 @@ import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 import { theme } from "../../constants/theme";
+import { useInsyStore } from "../../store/useInsyStore";
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
+  const profile = useInsyStore((state) => state.profile);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Not available";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,7 +59,9 @@ export default function PersonalInfoScreen() {
             </View>
             <View style={styles.infoText}>
               <Text style={styles.label}>Full Name</Text>
-              <Text style={styles.value}>Gabriel Maldito</Text>
+              <Text style={styles.value}>
+                {profile?.full_name || profile?.user_metadata?.full_name || "Guest User"}
+              </Text>
             </View>
           </View>
 
@@ -60,7 +73,7 @@ export default function PersonalInfoScreen() {
             </View>
             <View style={styles.infoText}>
               <Text style={styles.label}>Email Address</Text>
-              <Text style={styles.value}>gabriel@insy.app</Text>
+              <Text style={styles.value}>{profile?.email || "No email linked"}</Text>
             </View>
           </View>
 
@@ -72,7 +85,7 @@ export default function PersonalInfoScreen() {
             </View>
             <View style={styles.infoText}>
               <Text style={styles.label}>Member Since</Text>
-              <Text style={styles.value}>March 2024</Text>
+              <Text style={styles.value}>{formatDate(profile?.created_at)}</Text>
             </View>
           </View>
         </GlassCard>

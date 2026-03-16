@@ -10,7 +10,7 @@ import {
   User,
 } from "lucide-react-native";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CustomSwitch } from "../../components/ui/CustomSwitch";
@@ -19,9 +19,13 @@ import { OrbBackground } from "../../components/ui/OrbBackground";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 import { SettingsRow } from "../../components/ui/SettingsRow";
 import { theme } from "../../constants/theme";
+import { useInsyStore } from "../../store/useInsyStore";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const profile = useInsyStore((state) => state.profile);
+  const isPro = useInsyStore((state) => state.isPro);
+  const signOut = useInsyStore((state) => state.signOut);
   const [notifications, setNotifications] = useState(true);
 
   const handleSignOut = () => {
@@ -33,9 +37,8 @@ export default function ProfileScreen() {
         {
           text: "Sign Out",
           style: "destructive",
-          onPress: () => {
-            // Redirect to auth screen
-            router.replace("/(auth)");
+          onPress: async () => {
+            await signOut();
           },
         },
       ],
@@ -68,20 +71,45 @@ export default function ProfileScreen() {
           </LinearGradient>
 
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>Gabriel Maldito</Text>
-            <Text style={styles.userEmail}>gabriel@insy.app</Text>
+            <Text style={styles.userName}>
+              {profile?.full_name || profile?.user_metadata?.full_name || "Guest User"}
+            </Text>
+            <Text style={styles.userEmail}>
+              {profile?.email || "No email linked"}
+            </Text>
 
-            <View style={styles.proBadge}>
+            <View style={isPro ? styles.proBadge : styles.freeBadge}>
               <Star
-                color="rgba(255,107,53,0.90)"
+                color={isPro ? "rgba(255,107,53,0.90)" : "rgba(255,255,255,0.4)"}
                 size={10}
-                fill="rgba(255,107,53,0.90)"
+                fill={isPro ? "rgba(255,107,53,0.90)" : "transparent"}
                 style={styles.proBadgeIcon}
               />
-              <Text style={styles.proBadgeText}>Pro Plan</Text>
+              <Text style={isPro ? styles.proBadgeText : styles.freeBadgeText}>
+                {isPro ? "Pro Plan" : "Free Plan"}
+              </Text>
             </View>
           </View>
         </View>
+
+        {!isPro && (
+          <TouchableOpacity style={styles.upgradeCard}>
+            <LinearGradient
+              colors={["#ff6b35", "#ff4d00"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.upgradeGradient}
+            >
+              <View>
+                <Text style={styles.upgradeTitle}>Unlock Insy Pro</Text>
+                <Text style={styles.upgradeSubtitle}>Unlimited ideas & AI organization</Text>
+              </View>
+              <View style={styles.upgradeButton}>
+                <Text style={styles.upgradeButtonText}>UPGRADE</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Quick Stats Grid */}
         <View style={styles.statsGrid}>
@@ -284,6 +312,57 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     fontFamily: "Inter_600SemiBold",
+  },
+  freeBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  freeBadgeText: {
+    color: "rgba(255,255,255,0.40)",
+    fontSize: 10,
+    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
+  },
+  upgradeCard: {
+    marginBottom: 32,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  upgradeGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+  },
+  upgradeTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+  },
+  upgradeSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  upgradeButton: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  upgradeButtonText: {
+    color: "#ff4d00",
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
   },
   statsGrid: {
     flexDirection: "row",

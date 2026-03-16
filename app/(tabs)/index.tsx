@@ -222,6 +222,9 @@ export default function DashboardScreen() {
     stopRecording();
   };
 
+  const profile = useInsyStore((state) => state.profile);
+  const firstName = (profile?.full_name || profile?.user_metadata?.full_name || "").split(" ")[0] || "there";
+
   return (
     <SafeAreaView style={styles.container}>
       <OrbBackground />
@@ -229,7 +232,7 @@ export default function DashboardScreen() {
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good morning!</Text>
+          <Text style={styles.greeting}>Good morning, {firstName}!</Text>
           <Text style={styles.subtitle}>What's on your mind?</Text>
         </View>
         <View style={styles.topIcon}>

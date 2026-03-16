@@ -2,17 +2,19 @@
   "expo": {
     "name": "insy-front",
     "slug": "insy-front",
+    "owner": "gabrielraphacosta",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "insyfront",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Allow Insy to access your microphone to record your ideas."
-      }
+        "NSMicrophoneUsageDescription": "Allow Insy to access your microphone to record your ideas.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.gabrielraphacosta.insyfront"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +25,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "output": "static",
@@ -49,11 +54,18 @@
         {
           "microphonePermission": "Allow Insy to access your microphone to record your ideas."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "925d2578-0569-4326-9665-65401bde2d51"
+      }
     }
   }
 }
