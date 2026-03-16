@@ -33,6 +33,7 @@ import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { OrbBackground } from "../../components/ui/OrbBackground";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 import { SettingsRow } from "../../components/ui/SettingsRow";
+import { useInsyStore } from "../../store/useInsyStore";
 import { theme } from "../../constants/theme";
 
 export default function PrivacyScreen() {
@@ -43,6 +44,12 @@ export default function PrivacyScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmCheckbox, setConfirmCheckbox] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+
+  const closeModal = () => {
+    setShowDeleteModal(false);
+    setConfirmCheckbox(false);
+    setConfirmText("");
+  };
 
   const isDeleteEnabled =
     confirmCheckbox && confirmText.toLowerCase() === "cancel my account";
@@ -65,19 +72,47 @@ export default function PrivacyScreen() {
     );
   };
 
-  const handleDeleteAccount = () => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
     if (confirmText.toLowerCase() === "cancel my account" && confirmCheckbox) {
       Alert.alert(
         "Warning",
-        "Final confirmation: This will permanently delete everything. Continue?",
+        "Final confirmation: This will permanently delete your profile and sign you out. Continue?",
         [
           { text: "No", style: "cancel" },
           {
             text: "Yes, Delete Everything",
             style: "destructive",
-            onPress: () => {
-              setShowDeleteModal(false);
-              // Actual delete logic would go here
+            onPress: async () => {
+              setIsDeleting(true);
+              try {
+                const { supabase } = await import("../../utils/supabase");
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                  // 1. Delete profile data
+                  const { error: profileError } = await supabase
+                    .from("profiles")
+                    .delete()
+                    .eq("id", user.id);
+                  
+                  if (profileError) throw profileError;
+
+                  // 2. Sign out and clear store
+                  const signOut = useInsyStore.getState().signOut;
+                  await signOut();
+
+                  closeModal();
+                  Alert.alert("Account Removed", "Your data has been deleted and you have been signed out.");
+                  router.replace("/(auth)");
+                }
+              } catch (error: any) {
+                console.error("Delete error:", error);
+                Alert.alert("Error", "Failed to delete account data: " + error.message);
+              } finally {
+                setIsDeleting(false);
+              }
             },
           },
         ],
@@ -170,7 +205,7 @@ export default function PrivacyScreen() {
           />
           <Pressable
             style={StyleSheet.absoluteFill}
-            onPress={() => setShowDeleteModal(false)}
+            onPress={closeModal}
           />
 
           <KeyboardAvoidingView
@@ -182,7 +217,7 @@ export default function PrivacyScreen() {
                 <View style={styles.warningIcon}>
                   <AlertTriangle color="#ff4444" size={24} />
                 </View>
-                <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
+                <TouchableOpacity onPress={closeModal}>
                   <X color="rgba(255,255,255,0.4)" size={24} />
                 </TouchableOpacity>
               </View>
@@ -232,15 +267,15 @@ export default function PrivacyScreen() {
                   isDeleteEnabled ? styles.btnEnabled : styles.btnDisabled,
                 ]}
                 onPress={handleDeleteAccount}
-                disabled={!isDeleteEnabled}
+                disabled={!isDeleteEnabled || isDeleting}
               >
                 <Text
                   style={[
                     styles.confirmDeleteBtnText,
-                    !isDeleteEnabled && { color: "rgba(255,255,255,0.3)" },
+                    (!isDeleteEnabled || isDeleting) && { color: "rgba(255,255,255,0.3)" },
                   ]}
                 >
-                  Permanently Delete Account
+                  {isDeleting ? "Deleting Account..." : "Permanently Delete Account"}
                 </Text>
               </TouchableOpacity>
             </GlassCard>

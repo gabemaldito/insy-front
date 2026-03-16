@@ -10,13 +10,22 @@ import { NoiseTexture } from "../../components/ui/NoiseTexture";
 import { GlassCard } from "../../components/ui/GlassCard";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 
+import { useInsyStore } from "../../store/useInsyStore";
+
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const profile = useInsyStore((state) => state.profile);
+  const isSocialUser = profile?.app_metadata?.provider === "google";
+  
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleUpdate = () => {
+    if (isSocialUser) {
+      Alert.alert("Action not available", "Your account is managed via Google. Please use Google settings to manage your security.");
+      return;
+    }
     if (!oldPassword || !newPassword || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
@@ -51,56 +60,76 @@ export default function ChangePasswordScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <SectionLabel label="SECURITY CREDENTIALS" style={styles.sectionLabel} />
           
-          <GlassCard style={styles.card}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Current Password</Text>
-              <TextInput
-                style={styles.input}
-                value={oldPassword}
-                onChangeText={setOldPassword}
-                placeholder="••••••••"
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                secureTextEntry
-              />
-            </View>
+          {isSocialUser ? (
+            <GlassCard style={[styles.card, { padding: 24, alignItems: 'center' }]}>
+              <View style={styles.socialIconContainer}>
+                <Lock color={theme.colors.primary} size={32} />
+              </View>
+              <Text style={styles.socialTitle}>Managed by Google</Text>
+              <Text style={styles.socialText}>
+                Your account is currently linked with your Google account. Password management is handled by Google for your security.
+              </Text>
+              <TouchableOpacity 
+                style={styles.backLink}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.backLinkText}>Go Back</Text>
+              </TouchableOpacity>
+            </GlassCard>
+          ) : (
+            <>
+              <GlassCard style={styles.card}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Current Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={oldPassword}
+                    onChangeText={setOldPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor="rgba(255,255,255,0.2)"
+                    secureTextEntry
+                  />
+                </View>
 
-            <View style={styles.divider} />
+                <View style={styles.divider} />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>New Password</Text>
-              <TextInput
-                style={styles.input}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder="••••••••"
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                secureTextEntry
-              />
-            </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>New Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor="rgba(255,255,255,0.2)"
+                    secureTextEntry
+                  />
+                </View>
 
-            <View style={styles.divider} />
+                <View style={styles.divider} />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Confirm New Password</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="••••••••"
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                secureTextEntry
-              />
-            </View>
-          </GlassCard>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Confirm New Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor="rgba(255,255,255,0.2)"
+                    secureTextEntry
+                  />
+                </View>
+              </GlassCard>
 
-          <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-            <Text style={styles.updateButtonText}>Update Password</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
+                <Text style={styles.updateButtonText}>Update Password</Text>
+              </TouchableOpacity>
 
-          <View style={styles.hintContainer}>
-            <CheckCircle2 color={theme.colors.primary} size={14} />
-            <Text style={styles.hintText}>Minimum 8 characters with at least one number.</Text>
-          </View>
+              <View style={styles.hintContainer}>
+                <CheckCircle2 color={theme.colors.primary} size={14} />
+                <Text style={styles.hintText}>Minimum 8 characters with at least one number.</Text>
+              </View>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -195,5 +224,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     fontFamily: "Inter_400Regular",
-  }
+  },
+  socialIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,107,53,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,107,53,0.2)",
+  },
+  socialTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#ffffff",
+    fontFamily: "Inter_700Bold",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  socialText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  backLink: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  backLinkText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontFamily: "Inter_600SemiBold",
+  },
 });
