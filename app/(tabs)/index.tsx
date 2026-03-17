@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Mic } from "lucide-react-native";
 import React, { useRef } from "react";
 import {
+  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -33,6 +34,7 @@ import { OrbBackground } from "../../components/ui/OrbBackground";
 import { SectionLabel } from "../../components/ui/SectionLabel";
 import { theme } from "../../constants/theme";
 import { useInsyStore } from "../../store/useInsyStore";
+import { useAudioUpload } from "../../hooks/useAudioUpload";
 
 const { width } = Dimensions.get("window");
 const SIZE = 130;
@@ -49,6 +51,8 @@ export default function DashboardScreen() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const pressStartAt = useRef<number>(0);
+
+  const { uploadAndProcessAudio, isUploading } = useAudioUpload();
 
   // Reanimated shared values
   const amp = useSharedValue(0);
@@ -92,18 +96,18 @@ export default function DashboardScreen() {
 
   React.useEffect(() => {
     let timeoutId: any;
-    
+
     if (isRecording) {
       let sentenceIdx = 0;
-      
+
       const runTypingLoop = (words: string[], wordIdx: number) => {
         if (!isRecording) return;
-        
+
         if (wordIdx < words.length) {
           // Sliding window: mostra no máximo as últimas 5 palavras
           const visible = words.slice(0, wordIdx + 1).slice(-5);
           setCurrentTypingText(visible.join(" "));
-          
+
           timeoutId = setTimeout(() => {
             runTypingLoop(words, wordIdx + 1);
           }, 550); // Ritmo mais calmo e elegante
@@ -111,19 +115,19 @@ export default function DashboardScreen() {
           // Fim da frase: pausa para leitura completa
           timeoutId = setTimeout(() => {
             if (!isRecording) return;
-            
+
             // Limpa para respirar antes da próxima ideia
             setCurrentTypingText("");
-            
+
             timeoutId = setTimeout(() => {
               if (!isRecording) return;
-              
+
               sentenceIdx = (sentenceIdx + 1) % sentences.length;
-              setActiveSentenceKey(k => k + 1); // Dispara o FadeIn da próxima frase
+              setActiveSentenceKey((k) => k + 1); // Dispara o FadeIn da próxima frase
               const nextWords = sentences[sentenceIdx].split(" ");
               runTypingLoop(nextWords, 0);
             }, 800);
-          }, 2500); 
+          }, 2500);
         }
       };
 
@@ -197,7 +201,42 @@ export default function DashboardScreen() {
         await recordingRef.current.stopAndUnloadAsync();
         const uri = recordingRef.current.getURI();
         console.log("Recording stored at", uri);
-        // Em um app real, processaríamos aqui. Para o MVP, mostramos logs.
+
+        if (uri) {
+          try {
+            const newItem = await uploadAndProcessAudio(uri);
+            console.log("-> Upload e processamento concluídos!", newItem);
+
+            // Reutilizando a lógica de adicionar o item que Next.js devolveu na sua state local
+            useInsyStore.setState((state) => ({
+              vaultItems: [
+                {
+                  id: newItem.id,
+                  type: newItem.category,
+                  title: newItem.title,
+                  desc: newItem.summary,
+                  transcription: newItem.transcription,
+                  time: "Just now",
+                  tags: newItem.action_items,
+                  due: newItem.due_date,
+                },
+                ...state.vaultItems,
+              ],
+              captures: [
+                {
+                  id: String(newItem.id),
+                  type: newItem.category as any,
+                  title: newItem.title,
+                  subtitle: newItem.summary,
+                  timestamp: "Just now",
+                },
+                ...state.captures,
+              ],
+            }));
+          } catch (err: any) {
+            Alert.alert("Erro no Processamento", err.message);
+          }
+        }
       } catch (error) {
         console.error("Failed to stop recording", error);
       }
@@ -223,7 +262,10 @@ export default function DashboardScreen() {
   };
 
   const profile = useInsyStore((state) => state.profile);
-  const firstName = (profile?.full_name || profile?.user_metadata?.full_name || "").split(" ")[0] || "there";
+  const firstName =
+    (profile?.full_name || profile?.user_metadata?.full_name || "").split(
+      " ",
+    )[0] || "there";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -315,7 +357,7 @@ export default function DashboardScreen() {
 
         {isRecording && currentTypingText !== "" && (
           <GlassCard style={styles.geminiCard} intensity={25}>
-            <Animated.Text 
+            <Animated.Text
               key={activeSentenceKey}
               entering={FadeIn.duration(800)}
               exiting={FadeOut.duration(400)}
@@ -334,14 +376,18 @@ export default function DashboardScreen() {
             isRecording && { color: theme.colors.primary, marginTop: 10 },
           ]}
         >
-          {isRecording ? "LISTENING..." : "HOLD TO RECORD"}
+          {isRecording
+            ? "LISTENING..."
+            : isUploading
+              ? "PROCESSING COM GEMINI..."
+              : "HOLD TO RECORD"}
         </Text>
       </View>
 
       <View style={styles.footer}>
         <SectionLabel label="RECENT CAPTURES" />
-        {captures.slice(0, 2).map((item) => (
-          <GlassCard key={item.id} style={styles.captureCard}>
+        {captures.slice(0, 2).map((item, index) => (
+          <GlassCard key={item?.id ? item.id : `fallback-${index}`} style={styles.captureCard}>
             <View style={styles.captureInfo}>
               <Text style={styles.captureTitle}>{item.title}</Text>
               <Text style={styles.captureSubtitle}>{item.subtitle}</Text>

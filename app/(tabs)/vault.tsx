@@ -250,7 +250,7 @@ export default function VaultScreen() {
 
         <FlatList
           data={filteredItems}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => item?.id ? item.id.toString() : `fallback-${index}`}
           renderItem={({ item, index }) => (
             <InsightCard
               item={item}

@@ -1,3 +1,5 @@
+import { decode } from "base64-arraybuffer";
+import * as FileSystem from "expo-file-system/legacy";
 import { create } from "zustand";
 
 export interface Capture {
@@ -38,6 +40,7 @@ interface InsyStore {
   initialize: () => Promise<void>;
   fetchProfile: (uid: string) => Promise<void>;
   signOut: () => Promise<void>;
+  uploadAudio: (uri: string) => Promise<VaultItem | void>;
 }
 
 const mockVaultItems: VaultItem[] = [
@@ -102,6 +105,82 @@ export const useInsyStore = create<InsyStore>((set, get) => ({
   setRecording: (v) => set({ isRecording: v }),
   setFilter: (f) => set({ selectedFilter: f }),
   addCapture: (c) => set((state) => ({ captures: [c, ...state.captures] })),
+  uploadAudio: async (uri: string) => {
+    const { supabase } = await import("../utils/supabase");
+    
+    set({ isLoading: true });
+    try {
+      const session = get().session;
+      if (!session?.user?.id) throw new Error("User not authenticated");
+
+      const fileName = `${session.user.id}/${Date.now()}.m4a`;
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: "base64",
+      });
+
+      // 1. Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("recordings")
+        .upload(fileName, decode(base64), {
+          contentType: "audio/m4a",
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Call Backend to process
+      // Altere o IP para o seu IP local se estiver testando em dispositivo real
+      // Ou use http://localhost:3000 se for simulador
+      const BACKEND_URL = "http://10.0.0.35:3000/api/process"; 
+      
+      const response = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          fileUri: uploadData.path,
+          userId: session.user.id,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to process audio");
+
+      // 3. Update Store with new note
+      const newItem: VaultItem = {
+        id: result.item.id,
+        type: result.item.category,
+        title: result.item.title,
+        desc: result.item.summary,
+        transcription: result.item.transcription,
+        time: "Just now",
+        tags: result.item.action_items,
+        due: result.item.due_date,
+      };
+
+      set((state) => ({
+        vaultItems: [newItem, ...state.vaultItems],
+        captures: [
+          {
+            id: String(newItem.id),
+            type: newItem.type as any,
+            title: newItem.title,
+            subtitle: newItem.desc,
+            timestamp: "Just now",
+          },
+          ...state.captures,
+        ],
+      }));
+
+      return newItem;
+    } catch (error: any) {
+      console.error("Upload/Process error:", error);
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
   updateVaultItem: (id, updates) =>
     set((state) => ({
       vaultItems: state.vaultItems.map((item) =>
